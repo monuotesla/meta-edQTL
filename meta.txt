@@ -1,3 +1,6 @@
+RBP储存到芙蓉上了，文件比较大，之后会上传到新服务器上
+
+
 https://www.encodeproject.org/experiments/ENCSR432XUP/
 ENCFF609IXO.bed.gz	SRSF1_K562_rep01   
 chrom	chromStart	chromEnd	name	score分值（0-1000）	strand正负链	signalValue_Enrichment（富集倍数	-log10(p-value	qValue	peak
