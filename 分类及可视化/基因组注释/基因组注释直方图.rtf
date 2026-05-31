@@ -1,0 +1,423 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;\f2\fnil\fcharset0 AppleColorEmoji;
+}
+{\colortbl;\red255\green255\blue255;\red251\green2\blue7;\red253\green128\blue8;}
+{\*\expandedcolortbl;;\cssrgb\c100000\c14913\c0;\cssrgb\c100000\c57637\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww20040\viewh14660\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 \
+\
+
+\fs48 \cf2 /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt
+\fs36 \cf0 \
+\
+dt=fread("/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt")\
+\
+setnames(dt, c("V22", "V23", "V24"), c("gene", "genomic_region", "alu"))\
+\
+library(data.table)\
+library(ggplot2)\
+\
+# 1. \uc0\u35774 \u32622 \u36335 \u24452 \u19982 \u25968 \u25454 \u20934 \u22791 \
+out_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/ediste_anno/"\
+if(!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)\
+\
+# \uc0\u21076 \u38500  NA \u21306 \u22495 \u25968 \u25454 \
+dt_clean <- dt[!is.na(genomic_region) & genomic_region != "NA" & genomic_region != ""]\
+\
+# --- \uc0\u31532 \u19968 \u27493 \u65306 \u25552 \u21462  Universe \u32972 \u26223  ---\
+universe_dist <- dt_clean[, .N, by = genomic_region]\
+universe_dist[, Percentage := (N / sum(N)) * 100]\
+universe_dist[, Source := "Universe"]\
+\
+# --- \uc0\u31532 \u20108 \u27493 \u65306 \u25552 \u21462 \u22235 \u20010 \u23454 \u39564 \u32452 \u24182 \u27719 \u24635  ---\
+target_groups <- c("Consistent_LowHet", "Consistent_HighHet", "Opposite_LowHet", "Opposite_HighHet")\
+\
+# \uc0\u24490 \u29615 \u25552 \u21462 \u27599 \u32452 \u30340 \u20998 \u24067 \
+target_dist_list <- lapply(target_groups, function(g) \{\
+  group_dt <- dt_clean[Final_Class == g, .N, by = genomic_region]\
+  if(nrow(group_dt) > 0) \{\
+    group_dt[, Percentage := (N / sum(N)) * 100]\
+    group_dt[, Source := g]\
+    return(group_dt)\
+  \}\
+  return(NULL)\
+\})\
+\
+# \uc0\u21512 \u24182 \u25152 \u26377 \u25968 \u25454  (Universe + \u25152 \u26377 \u26377 \u25928 \u23454 \u39564 \u32452 )\
+plot_all_data <- rbindlist(c(list(universe_dist), target_dist_list))\
+\
+# --- \uc0\u31532 \u19977 \u27493 \u65306 \u35774 \u32622 \u22240 \u23376 \u39034 \u24207 \u21644 \u39068 \u33394  ---\
+# \uc0\u22266 \u23450  Source \u30340 \u39034 \u24207 \u65292 \u30830 \u20445  Universe \u22312 \u26368 \u21069 \u38754 \
+plot_all_data$Source <- factor(plot_all_data$Source, levels = c("Universe", target_groups))\
+\
+# \uc0\u20351 \u29992 \u24744 \u20043 \u21069 \u30340 \u33707 \u20848 \u36842 \u33394 \u31995 \u25193 \u23637 \u65292 \u25110 \u32773 \u33258 \u23450 \u20041 \u19968 \u22871 \u23545 \u27604 \u33394 \
+# \uc0\u36825 \u37324 \u25105 \u20026 \u24744 \u21305 \u37197 \u20102  5 \u31181 \u21327 \u35843 \u30340 \u39068 \u33394 \
+group_colors <- c(\
+  "Universe"           = "#D3D3D3", # \uc0\u27973 \u28784 \u33394 \u32972 \u26223 \
+  "Consistent_LowHet"  = "#859B97", # \uc0\u28784 \u32511 \u33394 \
+  "Consistent_HighHet" = "#9BB0BD", # \uc0\u34013 \u28784 \u33394 \
+  "Opposite_LowHet"    = "#A8C7CE", # \uc0\u27973 \u38738 \u33394 \
+  "Opposite_HighHet"   = "#E0B48C"  # \uc0\u27973 \u35088 \u33394 \
+)\
+\
+# --- \uc0\u31532 \u22235 \u27493 \u65306 \u32472 \u21046 \u20116 \u20010  Bar \u24182 \u21015 \u30340 \u32452 \u21512 \u22270  ---\
+# \uc0\u35774 \u32622 \u25991 \u23383 \u26631 \u27880 \u30340 \u20559 \u31227 \u23485 \u24230 \u65288 \u24517 \u39035 \u19982  geom_bar \u30340  dodge \u23485 \u24230 \u19968 \u33268 \u65289 \
+dodge_width <- 0.9\
+\
+p_combined <- ggplot(plot_all_data, aes(x = genomic_region, y = Percentage, fill = Source)) +\
+  # 1. \uc0\u32472 \u21046 \u26609 \u29366 \u22270 \
+  geom_bar(stat = "identity", position = position_dodge(dodge_width), color = "black", width = 0.8) +\
+  \
+  # 2. \uc0\u28155 \u21152 \u25968 \u20540 \u26631 \u27880 \
+  geom_text(\
+    aes(label = sprintf("%.1f%%", Percentage)), \
+    position = position_dodge(width = dodge_width), \
+    vjust = -0.5,            # \uc0\u25991 \u23383 \u26174 \u31034 \u22312 \u26609 \u23376 \u19978 \u26041 \
+    hjust = 0.5,             # \uc0\u27700 \u24179 \u23621 \u20013 \
+    size = 2.8,              # \uc0\u35843 \u25972 \u23383 \u20307 \u22823 \u23567 \u20197 \u38450 \u37325 \u21472 \
+    fontface = "bold",\
+    color = "black"          # \uc0\u24378 \u21046 \u40657 \u33394 \u65292 \u28165 \u26224 \u24230 \u26356 \u39640 \
+  ) +\
+  \
+  scale_fill_manual(values = group_colors) +\
+  theme_classic() +\
+  labs(\
+    title = "Genomic Region Distribution across Meta-QTL Classes",\
+    x = "Genomic Region",\
+    y = "Percentage of edSites (%)",\
+    fill = "Group"\
+  ) +\
+  theme(\
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", size = 11, color = "black"),\
+    axis.text.y = element_text(color = "black", size = 11),\
+    legend.position = "top",\
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")\
+  ) +\
+  # 3. \uc0\u36866 \u24403 \u22686 \u21152  Y \u36724 \u19978 \u38480 \u65292 \u38450 \u27490 \u26631 \u31614 \u36229 \u30028 \u34987 \u20999 \u25481 \
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2)))\
+\
+# \uc0\u20445 \u23384 \u26102 \u24314 \u35758 \u35843 \u23485 \u19968 \u28857 \u65292 5\u20010 \u26609 \u23376 +\u25991 \u23383 \u38656 \u35201 \u26356 \u22810 \u21628 \u21560 \u31354 \u38388 \
+ggsave(paste0(out_dir, "Region_Dist_Combined_with_Labels.pdf"), p_combined, width = 14, height = 7)\
+\
+cat("\uc0\u20840 \u32452 \u21512 \u22270 \u24050 \u25104 \u21151 \u20445 \u23384 \u33267 :", out_dir, "\\n")\
+\
+\
+\
+\
+\
+\
+################\uc0\u20197 \u19978 \u20026 \u21512 \u36215 \u26469 \u30011 \u19968 \u20010 \u22270 \
+
+\fs48 \cf3 ################\uc0\u20197 \u19979 \u20026 \u20998 \u24320 \u30011 \u22235 \u20010 \u22270 \cf0 \
+
+\fs36 \
+# 1. 
+\f1 \'c9\'e8\'d6\'c3\'c2\'b7\'be\'b6\'d3\'eb\'ca\'fd\'be\'dd\'d7\'bc\'b1\'b8
+\f0 \
+out_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/ediste_anno/"\
+if(!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)\
+\
+# 
+\f1 \'cc\'de\'b3\'fd
+\f0  NA 
+\f1 \'c7\'f8\'d3\'f2\'b5\'c4\'ca\'fd\'be\'dd
+\f0 \
+dt_clean <- dt[!is.na(genomic_region) & genomic_region != "NA" & genomic_region != ""]\
+\
+# 
+\f1 \'cc\'e1\'c8\'a1\'c8\'ab\'bc\'af\'b1\'b3\'be\'b0
+\f0  (Universe)\
+universe_dist <- dt_clean[, .N, by = genomic_region]\
+universe_dist[, Percentage := (N / sum(N)) * 100]\
+universe_dist[, Source := "Universe"]\
+\
+# 
+\f1 \'b6\'a8\'d2\'e5\'cb\'c4\'d7\'e9
+\f0 \
+target_groups <- c("Consistent_LowHet", "Consistent_HighHet", "Opposite_LowHet", "Opposite_HighHet")\
+\
+# 2. 
+\f1 \'d1\'ad\'bb\'b7\'bb\'e6\'cd\'bc\'ba\'af\'ca\'fd
+\f0 \
+plot_comparison <- function(group_name) \{\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'b8\'c3\'d7\'e9\'b7\'d6\'b2\'bc\'b2\'a2\'cc\'de\'b3\'fd
+\f0  NA\
+  group_dt <- dt_clean[Final_Class == group_name, .N, by = genomic_region]\
+  \
+  if(nrow(group_dt) == 0) return(NULL) # 
+\f1 \'b7\'c0\'d6\'b9\'bf\'d5\'d7\'e9\'b1\'a8\'b4\'ed
+\f0 \
+  \
+  group_dt[, Percentage := (N / sum(N)) * 100]\
+  group_dt[, Source := group_name]\
+  \
+  # 
+\f1 \'ba\'cf\'b2\'a2\'ca\'fd\'be\'dd
+\f0 \
+  plot_data <- rbind(universe_dist, group_dt)\
+  \
+  # 
+\f1 \'c8\'b7\'b1\'a3
+\f0  Source 
+\f1 \'d2\'f2\'d7\'d3\'cb\'b3\'d0\'f2\'a3\'ac\'bf\'d8\'d6\'c6
+\f0  Legend 
+\f1 \'cb\'b3\'d0\'f2
+\f0 \
+  plot_data$Source <- factor(plot_data$Source, levels = c("Universe", group_name))\
+\
+  # 3. 
+\f1 \'bb\'e6\'cd\'bc
+\f0 \
+# 2. 
+\f1 \'d1\'ad\'bb\'b7\'bb\'e6\'cd\'bc\'ba\'af\'ca\'fd
+\f0 \
+plot_comparison <- function(group_name) \{\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'b8\'c3\'d7\'e9\'b7\'d6\'b2\'bc\'b2\'a2\'cc\'de\'b3\'fd
+\f0  NA\
+  group_dt <- dt_clean[Final_Class == group_name, .N, by = genomic_region]\
+  \
+  if(nrow(group_dt) == 0) return(NULL) \
+  \
+  group_dt[, Percentage := (N / sum(N)) * 100]\
+  group_dt[, Source := group_name]\
+  \
+  # 
+\f1 \'ba\'cf\'b2\'a2\'ca\'fd\'be\'dd
+\f0 \
+  plot_data <- rbind(universe_dist, group_dt)\
+  \
+  # 
+\f1 \'a1\'be\'b9\'d8\'bc\'fc\'b5\'e3
+\f0 1
+\f1 \'a1\'bf\'c7\'bf\'d6\'c6\'c9\'e8\'d6\'c3\'d2\'f2\'d7\'d3\'cb\'b3\'d0\'f2\'a3\'ac\'d5\'e2\'d1\'f9
+\f0  Legend 
+\f1 \'b2\'c5\'bb\'e1\'b3\'f6\'cf\'d6\'c1\'bd\'b8\'f6\'a3\'ac\'c7\'d2\'cb\'b3\'d0\'f2\'b9\'cc\'b6\'a8
+\f0 \
+  plot_data$Source <- factor(plot_data$Source, levels = c("Universe", group_name))\
+\
+  # 
+\f1 \'a1\'be\'b9\'d8\'bc\'fc\'b5\'e3
+\f0 2
+\f1 \'a1\'bf\'b6\'af\'cc\'ac\'b4\'b4\'bd\'a8\'d2\'bb\'b8\'f6\'c3\'fc\'c3\'fb\'d1\'d5\'c9\'ab\'cf\'f2\'c1\'bf\'a3\'ac\'c8\'b7\'b1\'a3
+\f0  Scale 
+\f1 \'c4\'dc\'b9\'bb\'d5\'d2\'b5\'bd\'b6\'d4\'d3\'a6\'b5\'c4\'d7\'e9\'c3\'fb
+\f0 \
+  my_colors <- c("#F5CAB7", "#FF847C")\
+  names(my_colors) <- c("Universe", group_name)\
+\
+  # 3. 
+\f1 \'bb\'e6\'cd\'bc
+\f0 \
+  p <- ggplot(plot_data, aes(x = genomic_region, y = Percentage, fill = Source)) +\
+    # 
+\f1 \'ca\'b9\'d3\'c3
+\f0  position_dodge 
+\f1 \'c8\'b7\'b1\'a3\'b1\'ea\'d7\'a2\'b6\'d4\'c6\'eb
+\f0 \
+    geom_bar(stat = "identity", position = position_dodge(0.8), color = "black", width = 0.7) +\
+    \
+    # 
+\f1 \'ca\'b9\'d3\'c3\'b6\'af\'cc\'ac\'c3\'fc\'c3\'fb\'b5\'c4\'d1\'d5\'c9\'ab\'d3\'b3\'c9\'e4
+\f0 \
+    scale_fill_manual(values = my_colors) + \
+    \
+    theme_classic() +\
+    labs(\
+      title = paste("Region Distribution:", group_name),\
+      x = "Genomic Region",\
+      y = "Percentage of edSites (%)",\
+      fill = "Dataset"  # 
+\f1 \'c8\'b7\'b1\'a3\'cd\'bc\'d7\'a2\'b1\'ea\'cc\'e2\'b4\'e6\'d4\'da
+\f0 \
+    ) +\
+    theme(\
+      axis.text.x = element_text(angle = 45, hjust = 1, face = "bold", size = 12, color = "black"),\
+      axis.text.y = element_text(color = "black", size = 12),\
+      axis.title = element_text(size = 14, face = "bold", color = "black"),\
+      axis.line = element_line(color = "black"),\
+      plot.title = element_text(size = 16, hjust = 0.5, face = "bold", color = "black"),\
+      \
+      # 
+\f1 \'cf\'d4\'ca\'bd\'c9\'e8\'d6\'c3\'cd\'bc\'d7\'a2\'ce\'c4\'d7\'d6\'ce\'aa\'ba\'da\'c9\'ab\'a3\'ac\'b7\'c0\'d6\'b9\'b1\'bb\'b1\'b3\'be\'b0\'b3\'d4\'b5\'f4
+\f0 \
+      legend.text = element_text(size = 12, color = "black"),\
+      legend.title = element_text(size = 12, face = "bold", color = "black"),\
+      legend.position = "top"\
+    ) +\
+    \
+    # 
+\f1 \'b1\'ea\'d7\'a2\'b0\'d9\'b7\'d6\'b1\'c8\'a3\'ac\'b2\'a2\'c7\'bf\'d6\'c6\'d1\'d5\'c9\'ab\'ce\'aa\'ba\'da\'c9\'ab\'b1\'dc\'c3\'e2\'d6\'d8\'b5\'fe\'bf\'b4\'b2\'bb\'c7\'e5
+\f0 \
+    geom_text(aes(label = sprintf("%.1f%%", Percentage)), \
+              position = position_dodge(width = 0.8), \
+              vjust = -0.5, \
+              size = 3.5, \
+              fontface = "bold",\
+              color = "black") +\
+    \
+    scale_y_continuous(expand = expansion(mult = c(0, 0.2))) # 
+\f1 \'d4\'f6\'bc\'d3\'b6\'a5\'b2\'bf\'bf\'d5\'bc\'e4\'b7\'c0\'d6\'b9\'ce\'c4\'d7\'d6\'b1\'bb\'c7\'d0
+\f0 \
+\
+  return(p)\
+\}\
+# 4. 
+\f1 \'d6\'b4\'d0\'d0\'d1\'ad\'bb\'b7\'b2\'a2\'b1\'a3\'b4\'e6
+\f0 \
+for (g in target_groups) \{\
+  p_out <- plot_comparison(g)\
+  if(!is.null(p_out)) \{\
+    file_path <- paste0(out_dir, "Region_Dist_", g, "_vs_Universe.pdf")\
+    ggsave(file_path, p_out, width = 6, height = 4)\
+    cat("
+\f1 \'d2\'d1\'b3\'c9\'b9\'a6\'b1\'a3\'b4\'e6
+\f0 :", file_path, "\\n")\
+  \}\
+\}\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+########ld pattern\
+#rs4314015\
+\
+\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/SCZ_EAS\
+# 1. 
+\f1 \'b4\'b4\'bd\'a8\'c4\'bf\'c2\'bc\'a3\'a8\'c8\'e7\'b9\'fb\'b2\'bb\'b4\'e6\'d4\'da\'a3\'a9
+\f0 \
+mkdir -p /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/LD/\
+\
+# 2. 
+\f1 \'d6\'b4\'d0\'d0\'c6\'a5\'c5\'e4\'b2\'a2\'b1\'a3\'b4\'e6\'bd\'e1\'b9\'fb\'a3\'a8\'b0\'fc\'ba\'ac\'b1\'a3\'c1\'f4\'b1\'ed\'cd\'b7\'b5\'c4\'c2\'df\'bc\'ad\'a3\'a9
+\f0 \
+awk -F'\\t' 'NR==FNR \{ids[$1]; next\} FNR==1 || ($1 in ids)' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/LD/coloc_sig_reclassified_matched.txt\
+\
+\
+\
+#
+\f1 \'d5\'d2\'b5\'bd\'c1\'cb
+\f0  14_104148656  
+\f1 \'a3\'ac\'d2\'bb\'bb\'e1\'be\'cd\'cc\'f4\'d1\'a1
+\f0 GWAS 
+\f1 \'c0\'ef\'d5\'e2\'c0\'ef\'b1\'df\'c9\'cf\'cf\'c2
+\f0  500bp 
+\f1 \'b5\'c4
+\f0   
+\f1 \'a3\'ac
+\f0 95
+\f1 \'b8\'f6
+\f0 edsnp 
+\f1 \'a3\'ac
+\f0 94
+\f1 \'b8\'f6
+\f0  Consistent_LowHet\
+
+\f1 \'cb\'fc\'b1\'e0\'c2\'eb\'c7\'fd\'b6\'af\'b5\'b0\'b0\'d7\'a3\'a8
+\f0 Kinesin
+\f1 \'a3\'a9\'b5\'c4\'c7\'e1\'c1\'b4\'b2\'bf\'b7\'d6\'a1\'a3\'c7\'fd\'b6\'af\'b5\'b0\'b0\'d7\'be\'cd\'cf\'f1\'cf\'b8\'b0\'fb\'c4\'da\'b5\'c4
+\f0 \'93
+\f1 \'b0\'e1\'d4\'cb\'b9\'a4
+\f0 \'94
+\f1 \'a3\'ac\'d1\'d8\'d7\'c5\'ce\'a2\'b9\'dc\'d6\'e1\'cd\'bb\'bd\'ab\'c4\'d2\'c5\'dd\'a1\'a2\'b5\'b0\'b0\'d7\'d6\'ca\'ba\'cd\'cf\'b8\'b0\'fb\'c6\'f7\'b4\'d3\'cf\'b8\'b0\'fb\'cc\'e5\'d4\'cb\'ca\'e4\'b5\'bd\'c9\'f1\'be\'ad\'c4\'a9\'c9\'d2\'a1\'a3
+\f0 \
+\
+
+\f1 \'d5\'e2\'b8\'f6\'ca\'c7\'b5\'cd\'d2\'ec\'d6\'ca\'d0\'d4\'b5\'c4
+\f0  
+\f1 \'a3\'ac
+\f0 MDD coloc
+\f1 \'b5\'c4\'bd\'e1\'b9\'fb
+\f0    KLC1\
+# 10_43011598  
+\f1 \'a3\'ac\'d5\'e2
+\f0 edsite 
+\f1 \'d7\'e3\'d7\'e3\'d3\'d0
+\f0 202
+\f1 \'b8\'f6\'d0\'c5\'ba\'c5\'a3\'ac
+\f0 99
+\f1 \'b8\'f6
+\f0 Opposite_HighHet  
+\f1 \'b5\'c4\'d0\'c5\'ba\'c5
+\f0 \
+\
+#ZNF33B\
+
+\f1 \'b1\'e0\'c2\'eb\'d2\'bb\'d6\'d6\'ba\'ac\'d3\'d0
+\f0  KRAB 
+\f1 \'bd\'e1\'b9\'b9\'d3\'f2\'b5\'c4\'d0\'bf\'d6\'b8\'b5\'b0\'b0\'d7\'a1\'a3\'d5\'e2\'c0\'e0\'b5\'b0\'b0\'d7\'cd\'a8\'b3\'a3\'d7\'f7\'ce\'aa\'d7\'aa\'c2\'bc\'d2\'d6\'d6\'c6\'d2\'f2\'d7\'d3\'a3\'ac\'cd\'a8\'b9\'fd\'bd\'e1\'ba\'cf
+\f0  DNA 
+\f1 \'c0\'b4\'b5\'f7\'bd\'da\'c6\'e4\'cb\'fb\'bb\'f9\'d2\'f2\'b5\'c4\'b1\'ed\'b4\'ef\'bf\'aa\'b9\'d8\'a1\'a3
+\f0 \
+
+\f1 \'be\'df\'d3\'d0\'d2\'bb\'b6\'a8\'b5\'c4\'ce\'ef\'d6\'d6\'cc\'d8\'d2\'ec\'d0\'d4
+\f0 \
+\
+\
+rs7072559   rs1831910\
+\
+
+\f2 1\uc0\u65039 \u8419 
+\f0  D\uc0\u8242 
+\f1 \'a3\'a8
+\f0 D prime
+\f1 \'a3\'a9
+\f0 \'97\'97\'93
+\f1 \'c0\'fa\'ca\'b7\'d6\'d8\'d7\'e9\'ca\'c7\'b7\'f1\'b7\'a2\'c9\'fa\'b9\'fd
+\f0 \'94\
+\
+
+\f1 \'b1\'be\'d6\'ca
+\f0 \
+\
+
+\f1 \'ba\'e2\'c1\'bf\'c1\'bd\'b8\'f6\'ce\'bb\'b5\'e3\'d6\'ae\'bc\'e4\'ca\'c7\'b7\'f1\'b7\'a2\'c9\'fa\'b9\'fd\'d6\'d8\'d7\'e9
+\f0 \
+\
+
+\f1 \'ca\'c7\'d2\'bb\'b8\'f6\'bd\'e1\'b9\'b9\'d0\'d4\'d6\'b8\'b1\'ea
+\f0 \
+\
+
+\f1 \'c8\'a1\'d6\'b5
+\f0 \
+\
+0\'961
+\f1 \'a3\'a8\'cd\'a8\'b3\'a3\'bb\'ad\'cd\'bc\'cf\'d4\'ca\'be
+\f0  0\'961
+\f1 \'a3\'a9
+\f0 \
+\
+D\uc0\u8242  \u8776  1
+\f1 \'a3\'ba\'bc\'b8\'ba\'f5\'c3\'bb\'d3\'d0\'c0\'fa\'ca\'b7\'d6\'d8\'d7\'e9
+\f0 \
+\
+D\uc0\u8242  \u8776  0
+\f1 \'a3\'ba\'c6\'b5\'b7\'b1\'d6\'d8\'d7\'e9
+\f0 \
+\
+\
+Linkage disequilibrium (LD) patterns were visualized using LDmatrix (LDlink, NIH) based on 1000 Genomes Phase 3 reference panels. Pairwise LD was quantified using r\'b2 to assess tagging relationships between variants. For selected loci, LD matrices were constructed separately for East Asian (EAS) and European (EUR) populations using identical sets of variants centered on the lead edQTL SNP (\'b1100 kb).\
+\
+\
+\
+\
+\
+\
+}
