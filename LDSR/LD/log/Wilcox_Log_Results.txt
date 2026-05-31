@@ -1,0 +1,4 @@
+.y.	group1	group2	n1	n2	statistic	p	p.adj	p.adj.signif
+delta_logL2	Consistent_LowHet	Consistent_HighHet	36010	12080	222619940.5	0.000106	0.000106	***
+delta_logL2	Consistent_LowHet	Opposite_HighHet	36010	4099	68729092	5.09e-13	7.63e-13	****
+delta_logL2	Consistent_HighHet	Opposite_HighHet	12080	4099	22472742	9.21e-19	2.76e-18	****

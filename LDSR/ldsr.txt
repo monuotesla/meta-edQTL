@@ -1,0 +1,48 @@
+
+#!/bin/bash
+#SBATCH --job-name=eqtl_parallel
+#SBATCH --cpus-per-task=1           # 每个任务使用 1 个 CPU
+#SBATCH --array=1-22                # 并行作业数组，染色体 1 到 22
+#SBATCH --output=logs/eqtl_%A_%a.out  # 输出日志文件
+
+i=$SLURM_ARRAY_TASK_ID
+
+cat /gpfs/hpc/home/chenchao/hanc/database/1000G_Phase3_EAS_plinkfiles/"$i".txt | \
+awk 'NR==FNR && $2=='$i' {a[NR]=$3; b[NR]=$4} NR>FNR && FNR==1 {print "eQTL"} NR>FNR && FNR>=2 {flag=0; for(j in a) {if(a[j] < $1 && b[j] > $1) {flag=1}}; print flag}' \
+eqtl.flank500k.bed - > ldscore/baselineLD."$i".eSNP
+
+
+
+#!/bin/bash
+#SBATCH --job-name=eqtl_parallel_annot    # 作业名称
+#SBATCH --cpus-per-task=1                 # 每个任务使用 1 个 CPU
+#SBATCH --array=1-22                      # 并行作业数组，处理 1-22 染色体
+#SBATCH --output=logs/annot_%A_%a.out     # 标准输出文件
+#SBATCH --error=logs/annot_%A_%a.err      # 标准错误输出文件
+
+i=$SLURM_ARRAY_TASK_ID  # 当前染色体编号
+
+zcat /gpfs/hpc/home/chenchao/hanc/database/1000G_Phase3_EAS_baseline_v1.2_ldscores/baseline."$i".annot.gz | \
+awk 'BEGIN{OFS="\t"}NR==FNR{a[NR]=$0}NR>FNR{print a[FNR],$0}' - ldscore/baselineLD."$i".eSNP | \
+gzip > ldscore/baselineLD."$i".annot.gz
+
+
+
+
+
+#!/bin/bash
+#SBATCH --job-name=ldsc_parallel    # 作业名称
+#SBATCH --cpus-per-task=1           # 每个任务使用 1 个 CPU
+#SBATCH --array=1-22                # 作业数组，处理染色体 1-22
+#SBATCH --output=logs/ldsc_%A_%a.out  # 输出日志文件
+#SBATCH --error=logs/ldsc_%A_%a.err   # 错误日志文件
+
+i=$SLURM_ARRAY_TASK_ID  # 当前染色体编号
+
+conda activate ldsc
+python /gpfs/hpc/home/chenchao/hanc/tools/ldsc/ldsc.py --l2 \
+--bfile /gpfs/hpc/home/chenchao/hanc/database/1000G_Phase3_EAS_plinkfiles/1000G.EAS.QC."$i" \
+--ld-wind-cm 1 \
+--annot ldscore/baselineLD."$i".annot.gz \
+--print-snps /gpfs/hpc/home/chenchao/hanc/database/hapmap3_snps/hm."$i".snp \
+--out ldscore/baselineLD."$i"

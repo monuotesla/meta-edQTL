@@ -1,0 +1,84 @@
+library(data.table)
+
+
+#ld_dt  需要先运行  ld_analysis.R
+
+
+
+# =========================
+# 1️⃣ 参数设置
+# =========================
+window_size <- 100000   # 🔥 改成 100kb
+
+# =========================
+# 2️⃣ 定义分组（核心改动）
+# =========================
+ld_dt[, Het_Group := ifelse(
+  Final_Class == "Consistent_LowHet",
+  "LowHet",
+  ifelse(Final_Class %in% c("Consistent_HighHet", "Opposite_HighHet"),
+         "HighHet", NA)
+)]
+
+# 只保留需要的三类（去掉 Opposite_LowHet）
+ld_dt <- ld_dt[!is.na(Het_Group)]
+
+# =========================
+# 3️⃣ 计算窗口 ID
+# =========================
+ld_dt[, window_id := floor(EAS_BP / window_size)]
+
+# =========================
+# 4️⃣ 按窗口统计（🔥 HighHet 已合并）
+# =========================
+window_stats <- ld_dt[, .(
+  snp_count = .N,
+
+  LowHet_n  = sum(Het_Group == "LowHet"),
+  HighHet_n = sum(Het_Group == "HighHet"),
+
+  HighHet_ratio = sum(Het_Group == "HighHet") / .N,
+
+  mean_delta_L2 = mean(delta_L2, na.rm = TRUE),
+  mean_HetChiSq = mean(HetChiSq, na.rm = TRUE),
+
+  start_pos = min(EAS_BP),
+  end_pos   = max(EAS_BP)
+
+), by = .(chr, window_id)]
+
+# 🔥 新增：保存完整窗口表
+fwrite(
+  window_stats,
+  file.path(out_dir, "All_LD_Window_Stats_100kb.txt"),
+  sep = "\t"
+)
+
+
+# =========================
+# 5️⃣ LD 差异最大的窗口
+# =========================
+top_divergent <- window_stats[snp_count >= 5][order(-mean_delta_L2)]
+
+cat("\n--- Top 10 LD Divergent Regions ---\n")
+print(head(top_divergent, 10))
+
+fwrite(
+  top_divergent,
+  file.path(out_dir, "Top_LD_Divergent_Regions_100kb.txt"),
+  sep = "\t"
+)
+
+# =========================
+# 6️⃣ LD 最稳定窗口
+# =========================
+top_stable <- window_stats[snp_count >= 5][order(mean_delta_L2)]
+
+cat("\n--- Top 10 LD Stable Regions ---\n")
+print(head(top_stable, 10))
+
+fwrite(
+  head(top_stable, 10),
+  file.path(out_dir, "Top_LD_Stable_Regions_100kb.txt"),
+  sep = "\t"
+)
