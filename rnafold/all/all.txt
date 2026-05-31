@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# ======================
+# 参数与路径设置
+# ======================
+INPUT=$1    
+OUTDIR=$2   
+
+GENOME="/gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa"
+BEDTOOLS="/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools"
+
+mkdir -p $OUTDIR
+mkdir -p $OUTDIR/result/ref
+mkdir -p $OUTDIR/result/edit
+
+# ======================
+# 1️⃣ 距离筛选 + 注入行标识 (Row ID)
+# ======================
+# 使用 NR 确保每一行即便 edsite 重复，也有唯一编号
+awk -F'\t' '
+function abs(v) { return v < 0 ? -v : v }
+BEGIN { OFS="\t" }
+NR==1 { print "row_id", $0; next }
+{
+    # 新格式：$18 是 dist_start, $19 是 dist_end
+    if ( abs($18)<=100 || abs($19)<=100 ) {
+        print NR, $0
+    }
+}
+' $INPUT > $OUTDIR/input.filtered.txt
+
+# ======================
+# 2️⃣ 构建 BED 文件 (使用 row_id 作为主键)
+# ======================
+awk -F'\t' '
+BEGIN{OFS="\t"}
+NR==1{next}
+{
+    row_id=$1
+    split($2,a,"_") # $2 现在是 eGene
+    chr=a[1]; if(chr !~ /^chr/) chr="chr"chr
+    pos=a[2]
+    
+    start=pos-100; if(start<0) start=0
+    end=pos+100
+    
+    # ID: row_id|edsite|edPos|sqtlStart|sqtlEnd
+    # $13 是 sqtl_start, $14 是 sqtl_end (因为增加了row_id列，索引均+1)
+    print chr, start, end, row_id"|"$2"|"pos"|"$13"|"$14
+}
+' $OUTDIR/input.filtered.txt > $OUTDIR/region.bed
+
+# ======================
+# 3️⃣ 提取序列
+# ======================
+$BEDTOOLS getfasta -fi $GENOME -bed $OUTDIR/region.bed -name -fo $OUTDIR/seq.raw.fa
+
+# ======================
+# 4️⃣ 链识别与序列处理 (修正重定向逻辑)
+# ======================
+OUT_REF="$OUTDIR/seq.fa"
+OUT_EDIT="$OUTDIR/seq.edited.fa"
+
+# ❗关键：先清空文件，防止重复运行导致内容堆叠
+> "$OUT_REF"
+> "$OUT_EDIT"
+
+awk -v out_ref="$OUT_REF" -v out_edit="$OUT_EDIT" '
+function revcomp(s) {
+    split("A T C G G C T A a t c g g c t a", map, " ")
+    for(i=1; i<=16; i+=2) char_map[map[i]] = map[i+1]
+    res = ""
+    for(i=length(s); i>=1; i--) {
+        char = substr(s, i, 1)
+        res = res (char in char_map ? char_map[char] : char)
+    }
+    return res
+}
+function mark_upper(s, idx) {
+    if (idx < 1 || idx > length(s)) return s
+    return substr(s, 1, idx-1) toupper(substr(s, idx, 1)) substr(s, idx+1)
+}
+function strip(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+
+BEGIN { OFS="\n" }
+
+/^>/ {
+    header = $0
+    gsub(/^>/, "", header)
+    # 解析：row_id|edsite|edPos|i_start|i_end
+    split(header, a, "|")
+    row_id = a[1]; ed_p = a[3]; i_s = a[4]; i_e = a[5]
+
+    if ((getline seq) <= 0) next
+    seq = strip(seq)
+    
+    center_base = toupper(substr(seq, 101, 1))
+    
+    # 负链逻辑
+    if (center_base == "T" || center_base == "G") {
+        seq = revcomp(seq)
+        idx_c = 101; idx_s = ed_p - i_s + 101; idx_e = ed_p - i_e + 101
+    } else {
+        idx_c = 101; idx_s = i_s - ed_p + 101; idx_e = i_e - ed_p + 101
+    }
+
+    seq = tolower(seq)
+    ref_seq = mark_upper(seq, idx_c)
+    ref_seq = mark_upper(ref_seq, idx_s)
+    ref_seq = mark_upper(ref_seq, idx_e)
+
+    base = substr(ref_seq, idx_c, 1)
+    edit_seq = ref_seq
+    if (base == "A") edit_seq = substr(ref_seq,1,idx_c-1) "G" substr(ref_seq,idx_c+1)
+    else if (base == "C") edit_seq = substr(ref_seq,1,idx_c-1) "T" substr(ref_seq,idx_c+1)
+
+    # ❗输出时使用唯一 header，不进行累加
+    print ">"header "\n" ref_seq >> out_ref
+    print ">"header "\n" edit_seq >> out_edit
+}
+' $OUTDIR/seq.raw.fa
+
+# ======================
+# 5️⃣ - 9️⃣ RNAfold 与结果解析 (基于 row_id 排序)
+# ======================
+cd $OUTDIR/result/ref
+RNAfold --maxBPspan=100 --noLP < "$OUT_REF" > ref.structure.txt
+cd ../edit
+RNAfold --maxBPspan=100 --noLP < "$OUT_EDIT" > edit.structure.txt
+cd ../../
+
+export LC_ALL=C
+# 提取时 row_id 在 ID 的第一位，sort 会非常稳定
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/ref/ref.structure.txt | sort -k1,1 > $OUTDIR/ref.clean.txt
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/edit/edit.structure.txt | sort -k1,1 > $OUTDIR/edit.clean.txt
+
+join -t $'\t' -1 1 -2 1 $OUTDIR/ref.clean.txt $OUTDIR/edit.clean.txt > $OUTDIR/merged.txt
+
+# ======================
+# 🔟 计算最终统计
+# ======================
+awk -F'\t' '
+function is_chg(s1, s2, idx) {
+    if(idx < 1 || idx > length(s1)) return "NA"
+    return (substr(s1, idx, 1) != substr(s2, idx, 1)) ? 1 : 0
+}
+BEGIN {
+    OFS="\t"
+    print "Unique_ID","Ref_MFE","Edit_MFE","deltaG","EditSite_Changed","SpliceStart_Changed","SpliceEnd_Changed"
+}
+{
+    id=$1; r_struct=$2; r_mfe=$3; e_struct=$4; e_mfe=$5
+    gsub(/[()]/,"",r_mfe); gsub(/[()]/,"",e_mfe)
+    dg = e_mfe - r_mfe
+    
+    # 解析：row_id|edsite|edPos|i_start|i_end
+    split(id, a, "|")
+    ed_p=a[3]; i_s=a[4]; i_e=a[5]
+
+    idx_c = 101
+    idx_s1 = i_s - ed_p + 101; idx_s2 = ed_p - i_s + 101
+    idx_e1 = i_e - ed_p + 101; idx_e2 = ed_p - i_e + 101
+
+    s_chg = (idx_s1 >= 1 && idx_s1 <= 201) ? is_chg(r_struct, e_struct, idx_s1) : is_chg(r_struct, e_struct, idx_s2)
+    e_chg = (idx_e1 >= 1 && idx_e1 <= 201) ? is_chg(r_struct, e_struct, idx_e1) : is_chg(r_struct, e_struct, idx_e2)
+
+    print id, r_mfe, e_mfe, dg, is_chg(r_struct, e_struct, idx_c), s_chg, e_chg
+}
+' $OUTDIR/merged.txt > $OUTDIR/structure_change_summary.txt
+
+echo "✅ 处理完成！已通过行号 (Row ID) 解决 edsite 重复冲突。"

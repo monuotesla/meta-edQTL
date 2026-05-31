@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# ======================
+# 参数与路径设置
+# ======================
+INPUT=$1    # 输入文件：meta_edsite_coloc_sig_075.with_distance.txt
+OUTDIR=$2   # 输出目录
+
+GENOME="/gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa"
+BEDTOOLS="/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools"
+
+mkdir -p $OUTDIR
+mkdir -p $OUTDIR/result/ref
+mkdir -p $OUTDIR/result/edit
+
+# ======================
+# 1️⃣ 距离筛选 (改为绝对值 <= 200bp)
+# ======================
+awk -F'\t' '
+function abs(v) { return v < 0 ? -v : v }
+NR==1 {print $0; next}
+{
+    # $19 是 dist_start, $20 是 dist_end
+    if ( abs($19)<=200 || abs($20)<=200 ) print $0
+}
+' $INPUT > $OUTDIR/input.filtered.txt
+
+# ======================
+# 2️⃣ 构建 BED 文件 (窗口改为 ±200bp)
+# ======================
+awk -F'\t' '
+BEGIN{OFS="\t"}
+NR==1{next}
+{
+    split($1,a,"_")
+    chr=a[1]; if(chr !~ /^chr/) chr="chr"chr
+    pos=a[2]
+    
+    # 提取前后 200bp，总长度为 401bp (pos-200 到 pos+200)
+    start=pos-200; if(start<0) start=0
+    end=pos+200
+    
+    # ID格式：edsite|edPos|intronStart|intronEnd
+    print chr, start, end, $1"|"pos"|"$16"|"$17
+}
+' $OUTDIR/input.filtered.txt > $OUTDIR/region.bed
+
+# ======================
+# 3️⃣ 提取序列
+# ======================
+$BEDTOOLS getfasta -fi $GENOME -bed $OUTDIR/region.bed -name -fo $OUTDIR/seq.raw.fa
+
+# ======================
+# 4️⃣ 大小写标记与序列构建 (中心点改为 201)
+# ======================
+OUT_REF="$OUTDIR/seq.fa"
+OUT_EDIT="$OUTDIR/seq.edited.fa"
+> "$OUT_REF"
+> "$OUT_EDIT"
+
+awk -v out_ref="$OUT_REF" -v out_edit="$OUT_EDIT" '
+function mark_upper(s, idx) {
+    if (idx < 1 || idx > length(s)) return s
+    return substr(s, 1, idx-1) toupper(substr(s, idx, 1)) substr(s, idx+1)
+}
+function strip(s) { 
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); 
+    return s 
+}
+BEGIN { OFS="\n" }
+/^>/ {
+    header = $0
+    gsub(/^>/, "", header)
+    split(header, a, "|")
+    ed_pos = a[2]; i_start = a[3]; i_end = a[4]
+
+    if ((getline seq) <= 0) next
+    seq = strip(tolower(seq))
+
+    # ⭐ 关键修改：中心点索引变为 201
+    idx_c = 201
+    idx_s = i_start - ed_pos + 201
+    idx_e = i_end - ed_pos + 201
+
+    # 生成 Ref: 标记大写
+    ref_seq = mark_upper(seq, idx_c)
+    ref_seq = mark_upper(ref_seq, idx_s)
+    ref_seq = mark_upper(ref_seq, idx_e)
+
+    # 生成 Edit: A->G 或 C->T
+    base = substr(ref_seq, idx_c, 1)
+    edit_seq = ref_seq
+    if (base == "A") edit_seq = substr(ref_seq,1,idx_c-1) "G" substr(ref_seq,idx_c+1)
+    else if (base == "C") edit_seq = substr(ref_seq,1,idx_c-1) "T" substr(ref_seq,idx_c+1)
+
+    print ">"header "\n" ref_seq >> out_ref
+    print ">"header "\n" edit_seq >> out_edit
+}
+' $OUTDIR/seq.raw.fa
+
+# ======================
+# 5️⃣ & 6️⃣ RNAfold 预测 (调整 maxBPspan)
+# ======================
+# 注意：序列变长了，maxBPspan 可以根据需要调大，这里设为 150 或保持 100
+cd $OUTDIR/result/ref
+RNAfold --maxBPspan=150 --noLP < "$OUT_REF" > ref.structure.txt
+cd ../edit
+RNAfold --maxBPspan=150 --noLP < "$OUT_EDIT" > edit.structure.txt
+cd ../../
+
+# ======================
+# 7️⃣ & 8️⃣ 解析与排序
+# ======================
+export LC_ALL=C
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/ref/ref.structure.txt | sort -k1,1 > $OUTDIR/ref.clean.txt
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/edit/edit.structure.txt | sort -k1,1 > $OUTDIR/edit.clean.txt
+
+# ======================
+# 9️⃣ 合并结果
+# ======================
+join -t $'\t' -1 1 -2 1 $OUTDIR/ref.clean.txt $OUTDIR/edit.clean.txt > $OUTDIR/merged.txt
+
+# ======================
+# 🔟 计算结构变动总结 (同步中心点 201)
+# ======================
+awk -F'\t' '
+function is_chg(s1, s2, idx) {
+    if(idx < 1 || idx > length(s1)) return "NA"
+    return (substr(s1, idx, 1) != substr(s2, idx, 1)) ? 1 : 0
+}
+BEGIN {
+    OFS="\t"
+    print "ID","Ref_MFE","Edit_MFE","deltaG","EditSite_Changed","SpliceStart_Changed","SpliceEnd_Changed"
+}
+{
+    id=$1; r_struct=$2; r_mfe=$3; e_struct=$4; e_mfe=$5
+    gsub(/[()]/,"",r_mfe); gsub(/[()]/,"",e_mfe)
+    
+    dg = e_mfe - r_mfe
+    split(id, a, "|")
+    ed_p=a[2]; i_s=a[3]; i_e=a[4]
+
+    # ⭐ 关键修改：计算索引时偏移量改为 201
+    idx_c = 201
+    idx_s = i_s - ed_p + 201
+    idx_e = i_e - ed_p + 201
+
+    print id, r_mfe, e_mfe, dg, is_chg(r_struct, e_struct, idx_c), is_chg(r_struct, e_struct, idx_s), is_chg(r_struct, e_struct, idx_e)
+}
+' $OUTDIR/merged.txt > $OUTDIR/structure_change_summary.txt
+
+echo "✅ 处理完成！窗口已扩大至 ±200bp (总长 401bp)"
+echo "📁 最终统计结果: $OUTDIR/structure_change_summary.txt"

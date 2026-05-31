@@ -1,0 +1,173 @@
+#!/bin/bash
+
+# ======================
+# 参数与路径设置
+# ======================
+INPUT=$1    
+OUTDIR=$2   
+
+GENOME="/gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa"
+BEDTOOLS="/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools"
+
+mkdir -p $OUTDIR
+mkdir -p $OUTDIR/result/ref
+mkdir -p $OUTDIR/result/edit
+
+# ======================
+# 1️⃣ 距离筛选 (绝对值 <= 100bp)
+# ======================
+awk -F'\t' '
+function abs(v) { return v < 0 ? -v : v }
+NR==1 {print $0; next}
+{
+    # $19 为 dist_start, $20 为 dist_end
+    if ( abs($19)<=100 || abs($20)<=100 ) print $0
+}
+' $INPUT > $OUTDIR/input.filtered.txt
+
+# ======================
+# 2️⃣ 构建 BED 文件 (窗口回归 ±100bp)
+# ======================
+awk -F'\t' '
+BEGIN{OFS="\t"}
+NR==1{next}
+{
+    split($1,a,"_")
+    chr=a[1]; if(chr !~ /^chr/) chr="chr"chr
+    pos=a[2]
+    
+    start=pos-100; if(start<0) start=0
+    end=pos+100
+    
+    # ID: edsite|edPos|intronStart|intronEnd
+    print chr, start, end, $1"|"pos"|"$16"|"$17
+}
+' $OUTDIR/input.filtered.txt > $OUTDIR/region.bed
+
+# ======================
+# 3️⃣ 提取序列
+# ======================
+$BEDTOOLS getfasta -fi $GENOME -bed $OUTDIR/region.bed -name -fo $OUTDIR/seq.raw.fa
+
+# ======================
+# 4️⃣ 链自动识别、反向互补与大小写格式化
+# ======================
+OUT_REF="$OUTDIR/seq.fa"
+OUT_EDIT="$OUTDIR/seq.edited.fa"
+> "$OUT_REF"
+> "$OUT_EDIT"
+
+awk -v out_ref="$OUT_REF" -v out_edit="$OUT_EDIT" '
+# --- 反向互补函数 ---
+function revcomp(s) {
+    split("A T C G G C T A a t c g g c t a", map, " ")
+    for(i=1; i<=16; i+=2) char_map[map[i]] = map[i+1]
+    res = ""
+    for(i=length(s); i>=1; i--) {
+        char = substr(s, i, 1)
+        res = res (char in char_map ? char_map[char] : char)
+    }
+    return res
+}
+
+function mark_upper(s, idx) {
+    if (idx < 1 || idx > length(s)) return s
+    return substr(s, 1, idx-1) toupper(substr(s, idx, 1)) substr(s, idx+1)
+}
+
+function strip(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+
+BEGIN { OFS="\n" }
+
+/^>/ {
+    header = $0
+    gsub(/^>/, "", header)
+    split(header, a, "|")
+    ed_p = a[2]; i_s = a[3]; i_e = a[4]
+
+    if ((getline seq) <= 0) next
+    seq = strip(seq)
+    
+    # 检测中心碱基 (101位)
+    center_base = toupper(substr(seq, 101, 1))
+    
+    # 判断正负链
+    if (center_base == "T" || center_base == "G") {
+        # 负链：执行反向互补
+        seq = revcomp(seq)
+        idx_c = 101
+        idx_s = ed_p - i_s + 101
+        idx_e = ed_p - i_e + 101
+    } else {
+        # 正链
+        idx_c = 101
+        idx_s = i_s - ed_p + 101
+        idx_e = i_e - ed_p + 101
+    }
+
+    # 1. 序列全转小写
+    seq = tolower(seq)
+
+    # 2. 标记三个关键点大写 (edSite + 2个剪切位点)
+    ref_seq = mark_upper(seq, idx_c)
+    ref_seq = mark_upper(ref_seq, idx_s)
+    ref_seq = mark_upper(ref_seq, idx_e)
+
+    # 3. 构建 Edit 序列
+    base = substr(ref_seq, idx_c, 1)
+    edit_seq = ref_seq
+    if (base == "A") edit_seq = substr(ref_seq,1,idx_c-1) "G" substr(ref_seq,idx_c+1)
+    else if (base == "C") edit_seq = substr(ref_seq,1,idx_c-1) "T" substr(ref_seq,idx_c+1)
+
+    print ">"header "\n" ref_seq >> out_ref
+    print ">"header "\n" edit_seq >> out_edit
+}
+' $OUTDIR/seq.raw.fa
+
+# ======================
+# 5️⃣ - 9️⃣ RNAfold 与 合并
+# ======================
+cd $OUTDIR/result/ref
+RNAfold --maxBPspan=100 --noLP < "$OUT_REF" > ref.structure.txt
+cd ../edit
+RNAfold --maxBPspan=100 --noLP < "$OUT_EDIT" > edit.structure.txt
+cd ../../
+
+export LC_ALL=C
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/ref/ref.structure.txt | sort -k1,1 > $OUTDIR/ref.clean.txt
+awk 'NR%3==1{gsub(/^>/,"",$0); id=$0} NR%3==0{split($0,a," "); print id"\t"a[1]"\t"a[length(a)]}' $OUTDIR/result/edit/edit.structure.txt | sort -k1,1 > $OUTDIR/edit.clean.txt
+
+join -t $'\t' -1 1 -2 1 $OUTDIR/ref.clean.txt $OUTDIR/edit.clean.txt > $OUTDIR/merged.txt
+
+# ======================
+# 🔟 计算总结 (包含链方向兼容逻辑)
+# ======================
+awk -F'\t' '
+function is_chg(s1, s2, idx) {
+    if(idx < 1 || idx > length(s1)) return "NA"
+    return (substr(s1, idx, 1) != substr(s2, idx, 1)) ? 1 : 0
+}
+BEGIN {
+    OFS="\t"
+    print "ID","Ref_MFE","Edit_MFE","deltaG","EditSite_Changed","SpliceStart_Changed","SpliceEnd_Changed"
+}
+{
+    id=$1; r_struct=$2; r_mfe=$3; e_struct=$4; e_mfe=$5
+    gsub(/[()]/,"",r_mfe); gsub(/[()]/,"",e_mfe)
+    dg = e_mfe - r_mfe
+    split(id, a, "|")
+    ed_p=a[2]; i_s=a[3]; i_e=a[4]
+
+    idx_c = 101
+    # 尝试正向索引与负链翻转索引
+    idx_s1 = i_s - ed_p + 101; idx_s2 = ed_p - i_s + 101
+    idx_e1 = i_e - ed_p + 101; idx_e2 = ed_p - i_e + 101
+
+    s_chg = (idx_s1 >= 1 && idx_s1 <= 201) ? is_chg(r_struct, e_struct, idx_s1) : is_chg(r_struct, e_struct, idx_s2)
+    e_chg = (idx_e1 >= 1 && idx_e1 <= 201) ? is_chg(r_struct, e_struct, idx_e1) : is_chg(r_struct, e_struct, idx_e2)
+
+    print id, r_mfe, e_mfe, dg, is_chg(r_struct, e_struct, idx_c), s_chg, e_chg
+}
+' $OUTDIR/merged.txt > $OUTDIR/structure_change_summary.txt
+
+echo "✅ 处理完成！窗口设为 ±100bp，链方向已校正。"
