@@ -1,0 +1,79 @@
+AMZ2
+ATP1B3
+CBX5
+CRLF3
+CYCS
+DHTKD1
+DISP2
+DMAC2L
+EARS2
+EEF1AKMT2
+FADS1
+GSR
+HSD17B12
+METTL2B
+PPA2
+PTPA
+SWAP70
+TRIM65
+
+
+EEF1AKMT2
+
+修饰 eEF1A（翻译延伸因子）
+
+影响 翻译过程本身
+
+翻译因子是 RBP 网络的核心节点
+✅ 非常合理的 overlap 机制基因
+####################
+TRIM65
+
+E3 泛素连接酶
+
+已知可与 RNA 结合蛋白复合体相互作用
+
+参与 RNA 稳定性 / 抗病毒 RNA 通路
+✅ 间接但真实的 RBP 网络成员
+
+
+
+####
+PTPA
+
+蛋白磷酸酶 PP2A 的激活因子
+
+直接命中你 GO 的“protein dephosphorylation”
+
+这是你 overlap 机制的核心锚点
+
+RBP = SRSF1
+CLIP-seq = iCLIP
+
+SRSF1 是什么？
+
+经典 剪接因子（splicing factor）
+
+同时也是 RNA-binding protein
+
+在 mRNA：
+
+剪接
+
+输出
+
+稳定性
+都起核心作用
+
+👉 这意味着：
+
+PTPA 的 RNA 在剪接 / 转录后阶段，受到强烈的 RBP（SRSF1）调控
+
+RBP 和 miRNA 在同一 RNA 区域：
+
+可能竞争结合（互相抑制）
+
+也可能协同调控 RNA 命运
+
+
+

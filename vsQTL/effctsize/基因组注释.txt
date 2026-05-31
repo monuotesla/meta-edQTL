@@ -1,0 +1,428 @@
+#基因组偏好、
+
+
+
+ed_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt
+eqtl_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/eqtl.nominal.chrall.sig.symbol
+sqtl_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean
+pqtl_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/pQTL/protein_qtl.FDR0.05.allchr.txt
+
+out_dir=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/pair/overlap/
+mkdir -p $out_dir
+
+
+
+awk 'NR>1{
+  key=$2"\t"$NF
+  anno=$(NF-1)
+  print key"\t"anno
+}' $ed_file \
+| sort -u \
+> ${out_dir}/ed_pair_anno.txt
+
+awk '{print $8"\t"$1}' $eqtl_file | sort -u > ${out_dir}/eqtl_pair.txt
+
+awk '{print $8"\t"$NF}' $sqtl_file | sort -u > ${out_dir}/sqtl_pair.txt
+
+awk '{print $8"\t"$NF}' $pqtl_file | sort -u > ${out_dir}/pqtl_pair.txt
+
+awk 'NR==FNR {a[$1"\t"$2]=$3; next}
+     ($1"\t"$2 in a){print $1"\t"$2"\t"a[$1"\t"$2]}' \
+${out_dir}/ed_pair_anno.txt \
+${out_dir}/eqtl_pair.txt \
+> ${out_dir}/ed_eqtl_annotation.txt
+
+
+awk 'NR==FNR {a[$1"\t"$2]=$3; next}
+     ($1"\t"$2 in a){print $1"\t"$2"\t"a[$1"\t"$2]}' \
+${out_dir}/ed_pair_anno.txt \
+${out_dir}/sqtl_pair.txt \
+> ${out_dir}/ed_sqtl_annotation.txt
+
+awk 'NR==FNR {a[$1"\t"$2]=$3; next}
+     ($1"\t"$2 in a){print $1"\t"$2"\t"a[$1"\t"$2]}' \
+${out_dir}/ed_pair_anno.txt \
+${out_dir}/pqtl_pair.txt \
+> ${out_dir}/ed_pqtl_annotation.txt
+
+
+##可视化
+
+library(data.table)
+library(ggplot2)
+
+# =========================
+# 1️⃣ 路径
+# =========================
+dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/pair/overlap/"
+
+# =========================
+# 2️⃣ 读取函数（自动识别列）
+# =========================
+read_anno <- function(file, label) {
+  dt <- fread(file, header=FALSE)
+  
+  # 自动识别 annotation 列（最后一列）
+  anno_col <- ncol(dt)
+  
+  dt <- dt[, .(anno = get(names(dt)[anno_col]))]
+  dt[, Group := label]
+  
+  return(dt)
+}
+
+# =========================
+# 3️⃣ 读取数据
+# =========================
+ed_all <- read_anno(paste0(dir, "ed_pair_anno.txt"), "ed_all")
+ed_e   <- read_anno(paste0(dir, "ed_eqtl_annotation.txt"), "ed_eqtl")
+ed_s   <- read_anno(paste0(dir, "ed_sqtl_annotation.txt"), "ed_sqtl")
+ed_p   <- read_anno(paste0(dir, "ed_pqtl_annotation.txt"), "ed_pqtl")
+
+dt <- rbindlist(list(ed_all, ed_e, ed_s, ed_p))
+
+# =========================
+# 4️⃣ 清理 annotation（可选但推荐）
+# =========================
+dt <- dt[anno != "" & anno != "NA"]
+
+# 如果你之前统一过 exonic 可以跳过
+dt[grepl(":", anno), anno := "exonic"]
+
+# =========================
+# 5️⃣ 统计数量
+# =========================
+stat_dt <- dt[, .N, by=.(Group, anno)]
+
+# =========================
+# 6️⃣ 计算比例
+# =========================
+stat_dt[, freq := N / sum(N), by=Group]
+
+# =========================
+# 7️⃣ 排序（按背景 ed_all）
+# =========================
+order_levels <- stat_dt[Group=="ed_all"][order(-freq)]$anno
+stat_dt[, anno := factor(anno, levels=order_levels)]
+
+# =========================
+# 8️⃣ Group顺序
+# =========================
+stat_dt[, Group := factor(Group,
+                          levels=c("ed_all","ed_eqtl","ed_sqtl","ed_pqtl"))]
+
+# =========================
+# 9️⃣ 输出统计表（论文用）
+# =========================
+fwrite(
+  stat_dt,
+  paste0(dir, "pair_annotation_stat.txt"),
+  sep="\t"
+)
+
+# =========================
+# 🔟 画图（publication级）
+# =========================
+p <- ggplot(stat_dt, aes(x=anno, y=freq, fill=Group)) +
+  
+  geom_bar(stat="identity", position=position_dodge(width=0.8)) +
+  
+  geom_text(
+    aes(label=sprintf("%.1f%% (%d)", freq*100, N)),
+    position=position_dodge(width=0.8),
+    vjust=-0.3,
+    size=3
+  ) +
+  
+  scale_y_continuous(
+    labels = function(x) paste0(x*100, "%"),
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  
+  labs(
+    x="Genomic annotation",
+    y="Percentage",
+    title="Pair-level SNP genomic annotation distribution"
+  ) +
+  
+  theme_classic(base_size=14) +
+  
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1)
+  )
+
+# =========================
+# 保存
+# =========================
+ggsave(
+  paste0(dir, "pair_annotation_distribution.pdf"),
+  p,
+  width=10,
+  height=6
+)
+
+
+
+
+
+
+############### fisher 检验  
+
+colco :60(41.6%)
+全集：  41195  （29.2%）
+metaQTL:    47636    (31.3%)
+
+miRNA ：     28 （68.3%）       41
+
+#########################
+sQTL    63532(45.0%)    7844(5.6%)  ncRNA_intronic
+
+（一共106）coloc   55（51.9%）  
+intronic	52	
+UTR3	25	0.257731958762887
+intergenic	9	
+ncRNA_intronic	
+ncRNA_exonic	4	
+downstream	1
+upstream	1	
+NA           
+
+
+具体结果路径在：/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/figure/
+
+
+mat <- matrix(c(
+   55,    51,
+ 63532, 77650
+), nrow = 2, byrow = TRUE)
+
+rownames(mat) <- c("A", "B")
+colnames(mat) <- c("Target", "Other")
+
+mat     fisher.test(mat)
+
+95 percent confidence interval:
+ 0.8838302 1.9688915
+
+
+#####################上方是用 snp_gene  做overlap的 另外注意  注释是 edsite 的注释
+####################下方是只用  snp 做overlap的
+
+
+awk '
+BEGIN{OFS="\t"}
+NR==1 {print; next}   # 保留表头
+
+{
+  anno = $(NF-1)
+
+  # 去掉 NA
+  if (anno == "NA" || anno == "") next
+
+  # 复杂注释 → exonic
+  if (anno ~ /:/) {
+    $(NF-1) = "exonic"
+  }
+
+  print
+}
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl.significant.coloc.withAnno.txt \
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt
+
+
+
+
+
+# =========================
+# 0️⃣ 定义路径
+# =========================
+anno_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt
+
+ed_snp_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/edSNP_fromAnno.txt
+e_snp_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/eSNP.uniq
+s_snp_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/sSNP.uniq
+p_snp_file=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/pSNP.uniq
+
+out_dir=/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/
+
+mkdir -p $out_dir
+
+# =========================
+# 1️⃣ 提取 edSNP（第2列）
+# =========================
+awk 'NR>1{print $2}' $anno_file \
+| sort -u \
+> $ed_snp_file
+
+# =========================
+# 2️⃣ 确保全部排序（comm 必须）
+# =========================
+sort $ed_snp_file -o $ed_snp_file
+sort $e_snp_file  -o $e_snp_file
+sort $s_snp_file  -o $s_snp_file
+sort $p_snp_file  -o $p_snp_file
+
+# =========================
+# 3️⃣ overlap SNP
+# =========================
+
+# ed ∩ e
+comm -12 \
+$ed_snp_file \
+$e_snp_file \
+> ${out_dir}ed_e_snp.txt
+
+# ed ∩ s
+comm -12 \
+$ed_snp_file \
+$s_snp_file \
+> ${out_dir}ed_s_snp.txt
+
+# ed ∩ p
+comm -12 \
+$ed_snp_file \
+$p_snp_file \
+> ${out_dir}ed_p_snp.txt
+
+# =========================
+# 4️⃣ 提取 annotation（倒数第二列）
+# =========================
+
+# ed ∩ e
+awk 'NR==FNR {a[$1]; next} {if ($2 in a) print $(NF-1)}' \
+${out_dir}ed_e_snp.txt \
+$anno_file \
+> ${out_dir}ed_e_annotation.txt
+
+# ed ∩ s
+awk 'NR==FNR {a[$1]; next} {if ($2 in a) print $(NF-1)}' \
+${out_dir}ed_s_snp.txt \
+$anno_file \
+> ${out_dir}ed_s_annotation.txt
+
+# ed ∩ p
+awk 'NR==FNR {a[$1]; next} {if ($2 in a) print $(NF-1)}' \
+${out_dir}ed_p_snp.txt \
+$anno_file \
+> ${out_dir}ed_p_annotation.txt
+
+# =========================
+# 5️⃣ 全部 ed（背景）
+# =========================
+awk 'NR>1{print $(NF-1)}' \
+$anno_file \
+> ${out_dir}ed_all_annotation.txt
+
+# =========================
+# 6️⃣ 检查输出（可选）
+# =========================
+wc -l ${out_dir}*.txt
+
+
+
+
+####################可视化：
+library(data.table)
+library(ggplot2)
+
+# =========================
+# 1️⃣ 路径
+# =========================
+dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/"
+
+# =========================
+# 2️⃣ 读取函数
+# =========================
+read_anno <- function(file, label) {
+  dt <- fread(file, header=FALSE)
+  colnames(dt) <- "anno"
+  dt[, Group := label]
+  return(dt)
+}
+
+# =========================
+# 3️⃣ 读取数据
+# =========================
+ed_all <- read_anno(paste0(dir, "ed_all_annotation.txt"), "ed_all")
+ed_e   <- read_anno(paste0(dir, "ed_e_annotation.txt"),   "ed_e")
+ed_s   <- read_anno(paste0(dir, "ed_s_annotation.txt"),   "ed_s")
+ed_p   <- read_anno(paste0(dir, "ed_p_annotation.txt"),   "ed_p")
+
+dt <- rbind(ed_all, ed_e, ed_s, ed_p)
+
+# =========================
+# 4️⃣ 统计比例
+# =========================
+stat_dt <- dt[, .N, by=.(Group, anno)]
+stat_dt[, freq := N / sum(N), by=Group]
+
+# =========================
+# 5️⃣ 排序（按背景）
+# =========================
+order_levels <- stat_dt[Group=="ed_all"][order(-freq)]$anno
+stat_dt[, anno := factor(anno, levels=order_levels)]
+
+# =========================
+# 6️⃣ 横轴顺序
+# =========================
+stat_dt[, Group := factor(Group, levels=c("ed_all","ed_e","ed_s","ed_p"))]
+
+# =========================
+# 7️⃣ 画图
+# =========================
+p <- ggplot(stat_dt, aes(x=anno, y=freq, fill=Group)) +
+  
+  geom_bar(stat="identity", position=position_dodge(width=0.8)) +
+  
+  geom_text(
+    aes(label=sprintf("%.1f%%", freq*100)),
+    position=position_dodge(width=0.8),
+    vjust=-0.3,
+    size=3
+  ) +
+  
+  scale_y_continuous(
+    labels = function(x) paste0(x*100, "%"),
+    expand = expansion(mult = c(0, 0.1))
+  ) +
+  
+  theme_classic(base_size=14) +
+  
+  labs(
+    x="Genomic annotation",
+    y="Percentage",
+    title="SNP genomic annotation distribution"
+  ) +
+  
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1)
+  )
+
+# =========================
+# 8️⃣ 保存
+# =========================
+ggsave(
+  paste0(dir, "SNP_annotation_distribution.pdf"),
+  p,
+  width=10,
+  height=6
+)
+
+# =========================
+# 9️⃣ 输出数据
+# =========================
+fwrite(
+  stat_dt,
+  paste0(dir, "SNP_annotation_distribution.txt"),
+  sep="\t"
+)
+
+
+
+
+
+
+
+
+
+

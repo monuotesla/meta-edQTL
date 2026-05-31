@@ -1,0 +1,815 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;\f2\fnil\fcharset0 LucidaGrande;
+\f3\fnil\fcharset0 AppleColorEmoji;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red251\green2\blue7;\red221\green32\blue103;
+}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c100000\c14913\c0;\cssrgb\c90234\c23206\c47866;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww21880\viewh15480\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf2 \
+###################\uc0\u26597 \u35810 \
+grep -w -E "TTC39C|FKBP11" /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/eqtl.nominal.chrall.sig.symbol /gpfs/hpc/home/chenchao/mayinuo/edqtl/pQTL/protein_qtl.FDR0.05.allchr.txt\
+\
+\
+\
+\
+\
+\
+##########sQTL p e ed\
+\
+awk 'NR>1\{print  $NF"_"$2"\\t"$5\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl.significant.coloc.withAnno.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet/edqtl_pair_beta.txt\
+\
+\
+awk '\{print $NF"_"$8"\\t"$14\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet/sqtl_pair_beta.txt\
+\
+\
+awk '\{print $NF"_"$8"\\t"$14\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/pQTL/protein_qtl.FDR0.05.allchr.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet/pqtl_pair_beta.txt\
+\
+\
+\
+awk '\{print $1"_"$8"\\t"$14\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/eqtl.nominal.chrall.sig.symbol \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet/eqtl_pair_beta.txt\
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet/ \
+\
+\
+sort -u edqtl_pair_beta.txt -o edqtl_pair_beta.txt\
+sort -u sqtl_pair_beta.txt -o sqtl_pair_beta.txt\
+sort -u pqtl_pair_beta.txt -o pqtl_pair_beta.txt\
+sort -u eqtl_pair_beta.txt -o eqtl_pair_beta.txt\
+\
+\
+awk '\{print NF\}' pqtl_pair_beta.txt | sort | uniq -c\
+\
+\
+\
+\
+library(data.table)\
+library(ggplot2)\
+library(ggpubr)\
+library(dplyr)\
+\
+# ======================\
+# \uc0\u36755 \u20986 \u30446 \u24405 \
+# ======================\
+outdir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet"\
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)\
+\
+# ======================\
+# 1\uc0\u65039 \u8419  \u35835 \u20837 \u25968 \u25454 \
+# ======================\
+ed <- fread(file.path(outdir, "edqtl_pair_beta.txt"), header = FALSE)\
+pq <- fread(file.path(outdir, "pqtl_pair_beta.txt"), header = FALSE)\
+eq <- fread(file.path(outdir, "eqtl_pair_beta.txt"), header = FALSE)\
+sq <- fread(file.path(outdir, "sqtl_pair_beta.txt"), header = FALSE)\
+\
+setnames(ed, c("pair", "beta"))\
+setnames(pq, c("pair", "beta"))\
+setnames(eq, c("pair", "beta"))\
+setnames(sq, c("pair", "beta"))\
+\
+# ======================\
+# 2\uc0\u65039 \u8419  |effect|\
+# ======================\
+ed_eff <- data.table(type = "edQTL", effect = abs(as.numeric(ed$beta)))\
+pq_eff <- data.table(type = "pQTL", effect = abs(as.numeric(pq$beta)))\
+eq_eff <- data.table(type = "eQTL", effect = abs(as.numeric(eq$beta)))\
+sq_eff <- data.table(type = "sQTL", effect = abs(as.numeric(sq$beta)))\
+\
+dat <- rbind(ed_eff, eq_eff, sq_eff, pq_eff)\
+dat <- dat[!is.na(effect)]\
+\
+# ======================\
+# \uc0\u21435 \u26497 \u31471 \u20540 \
+# ======================\
+dat <- dat[effect < quantile(effect, 0.99)]\
+\
+# ======================\
+# \uc0\u55357 \u56613  \u22266 \u23450 \u39034 \u24207 \u65288 \u20851 \u38190 \u20462 \u25913 \u65289 \
+# ======================\
+dat[, type := factor(type, levels = c("edQTL","eQTL","sQTL","pQTL"))]\
+\
+# ======================\
+# 3\uc0\u65039 \u8419  \u35745 \u31639 \u22343 \u20540 \u65288 \u19981 \u20877 \u25490 \u24207 \u65289 \
+# ======================\
+mean_df <- dat[, .(mean_effect = mean(effect)), by = type]\
+\
+# ======================\
+# 4\uc0\u65039 \u8419  \u20004 \u20004 \u27604 \u36739 \
+# ======================\
+comparisons <- list(\
+  c("edQTL", "eQTL"),\
+  c("edQTL", "sQTL"),\
+  c("edQTL", "pQTL"),\
+  c("eQTL", "sQTL"),\
+  c("eQTL", "pQTL"),\
+  c("sQTL", "pQTL")\
+)\
+\
+# ======================\
+# 5\uc0\u65039 \u8419  \u33707 \u20848 \u36842 \u37197 \u33394 \
+# ======================\
+cols <- c(\
+  "edQTL" = "#8DA0A6",\
+  "eQTL"  = "#A3B18A",\
+  "sQTL"  = "#C9ADA7",\
+  "pQTL"  = "#9A8C98"\
+)\
+\
+# ======================\
+# 6\uc0\u65039 \u8419  \u20316 \u22270 \u65288 \u26368 \u32456 \u31283 \u23450 \u29256 \u55357 \u56613 \u65289 \
+# ======================\
+p <- ggplot(dat, aes(x = type, y = effect, fill = type)) +\
+\
+  # violin\
+  geom_violin(alpha = 0.5, trim = TRUE) +\
+\
+  # box\
+  geom_boxplot(width = 0.1, outlier.shape = NA) +\
+\
+  # median\
+  stat_summary(\
+    fun = median,\
+    geom = "point",\
+    shape = 21,\
+    size = 3,\
+    fill = "white"\
+  ) +\
+\
+  # mean \uc0\u26631 \u27880 \
+  geom_text(\
+    data = mean_df,\
+    aes(\
+      x = type,\
+      y = mean_effect + 0.03,\
+      label = sprintf("mean\\n%.3f", mean_effect)\
+    ),\
+    size = 4\
+  ) +\
+\
+  # \uc0\u55357 \u56613  \u26174 \u33879 \u24615 \u65288 \u20851 \u38190 \u20462 \u22797 \u65289 \
+  stat_compare_means(\
+    comparisons = comparisons,\
+    method = "wilcox.test",\
+    label = "p.signif",\
+    hide.ns = FALSE,\
+    size = 5,\
+    step.increase = 0.05   # \uc0\u33258 \u21160 \u24448 \u19978 \u21472 \
+  ) +\
+\
+  # \uc0\u39068 \u33394 \
+  scale_fill_manual(values = cols) +\
+\
+  # \uc0\u55357 \u56613  \u32473 \u26174 \u33879 \u24615 \u30041 \u31354 \u38388 \u65288 \u20851 \u38190 \u65289 \
+  coord_cartesian(ylim = c(0, 1.5)) +\
+\
+  theme_classic() +\
+  theme(\
+    legend.position = "none",\
+    axis.text.x  = element_text(size = 14),\
+    axis.text.y  = element_text(size = 14),\
+    axis.title.y = element_text(size = 15),\
+    plot.title   = element_text(size = 16, hjust = 0.5),\
+\
+    # \uc0\u55357 \u56613  \u39030 \u37096 \u30041 \u30333 \u65288 \u38450 \u25380 \u65289 \
+    plot.margin = margin(t = 30, r = 10, b = 10, l = 10)\
+  ) +\
+\
+  labs(\
+    x = "",\
+    y = "|Effect size|",\
+    title = "Effect size comparison across QTL types"\
+  )\
+# ======================\
+# 7\uc0\u65039 \u8419  \u36755 \u20986 \
+# ======================\
+ggsave(\
+  file.path(outdir, "effect_size_comparison_pair_morandi.png"),\
+  p,\
+  width = 5,\
+  height = 7,\
+  dpi = 300\
+)\
+\
+ggsave(\
+  file.path(outdir, "effect_size_comparison_pair_morandi.pdf"),\
+  p,\
+  width = 7,\
+  height =5,\
+)\cf3 \
+################################################################################\
+\
+#
+\f1 \cf3 \'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \cf3  /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.txt\
+\
+\
+awk '\
+BEGIN \{ FS = OFS = "\\t" \}\
+\
+\{\
+  # 
+\f1 \cf3 \'c8\'e7\'b9\'fb\'d7\'ee\'ba\'f3\'d2\'bb\'c1\'d0\'ca\'c7
+\f0 \cf3  NA 
+\f1 \cf3 \'bb\'f2\'bf\'d5\'a3\'ac\'cc\'e6\'bb\'bb\'ce\'aa
+\f0 \cf3  0\
+  if ($NF == "NA" || $NF == "" ) \{\
+    $NF = 0\
+  \}\
+\
+  # 
+\f1 \cf3 \'c8\'e7\'b9\'fb\'b5\'b9\'ca\'fd\'b5\'da\'b6\'fe\'c1\'d0\'ca\'c7
+\f0 \cf3  NA
+\f1 \cf3 \'a3\'a8\'bc\'ab\'c9\'d9\'ca\'fd\'c7\'e9\'bf\'f6\'cf\'c2\'a3\'a9
+\f0 \cf3 \
+  if ($(NF-1) == "NA" || $(NF-1) == "") \{\
+    $(NF-1) = 0\
+  \}\
+\
+  print\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt\
+\
+grep -w "NA" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt\
+\
+\
+\cf2 \
+library(ggplot2)\
+## =========================\
+## 0. 
+\f1 \'bc\'d3\'d4\'d8\'b0\'fc
+\f0 \
+## =========================\
+library(ggplot2)\
+library(scales)\
+\
+## =========================\
+## 1. 
+\f1 \'b6\'c1\'c8\'eb
+\f0  clean 
+\f1 \'ba\'f3\'b5\'c4\'d6\'f7\'ce\'c4\'bc\'fe
+\f0 \
+## =========================\
+df <- read.table(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt",\
+  header = TRUE,\
+  sep = "\\t",\
+  stringsAsFactors = FALSE\
+)\
+\
+## 
+\f1 \'bf\'ec\'cb\'d9
+\f0  sanity check\
+stopifnot(nrow(df) > 0)\
+\
+## =========================\
+## 2. 
+\f1 \'cd\'b3\'d2\'bb\'c1\'d0\'c3\'fb\'a3\'a8\'b7\'c0\'d6\'b9\'c0\'fa\'ca\'b7\'d2\'c5\'c1\'f4\'ce\'ca\'cc\'e2\'a3\'a9
+\f0 \
+## =========================\
+# is_pQTL 
+\f1 \'d2\'d4\'c7\'b0\'bf\'c9\'c4\'dc\'bd\'d0
+\f0  X0\
+if ("X0" %in% colnames(df)) \{\
+  colnames(df)[colnames(df) == "X0"] <- "is_pQTL"\
+\}\
+\
+## 
+\f1 \'d4\'d9\'c8\'b7\'c8\'cf\'b9\'d8\'bc\'fc\'c1\'d0\'b4\'e6\'d4\'da
+\f0 \
+required_cols <- c("genomic_annotation", "is_pQTL")\
+stopifnot(all(required_cols %in% colnames(df)))\
+\
+## =========================\
+## 3. 
+\f1 \'b9\'e6\'b7\'b6\'bb\'af
+\f0  genomic annotation\
+##    
+\f1 \'b3\'a4\'b4\'ae
+\f0  exon 
+\f1 \'d7\'a2\'ca\'cd
+\f0  
+\f2 \uc0\u8594 
+\f0  exonic\
+## =========================\
+\
+# 
+\f1 \'b6\'a8\'d2\'e5
+\f0 \'93
+\f1 \'b1\'ea\'d7\'bc
+\f0  genomic annotation\'94\
+canonical_anno <- c(\
+  "intronic",\
+  "intergenic",\
+  "upstream",\
+  "downstream",\
+  "UTR3",\
+  "UTR5",\
+  "ncRNA_exonic",\
+  "ncRNA_intronic",\
+  "ncRNA_splicing",\
+  "exonic"\
+)\
+\
+# 
+\f1 \'d0\'c2\'bd\'a8\'b9\'e6\'b7\'b6\'bb\'af\'d7\'a2\'ca\'cd\'c1\'d0
+\f0 \
+df$genomic_annotation_norm <- df$genomic_annotation\
+\
+# 
+\f1 \'ba\'ac
+\f0  exon 
+\f1 \'b5\'c4\'b8\'b4\'d4\'d3\'d7\'d6\'b7\'fb\'b4\'ae
+\f0  
+\f2 \uc0\u8594 
+\f0  exonic\
+df$genomic_annotation_norm[\
+  grepl("exon", df$genomic_annotation_norm) &\
+    !(df$genomic_annotation_norm %in% canonical_anno)\
+] <- "exonic"\
+\
+## 
+\f1 \'bf\'b4\'d2\'bb\'d1\'db\'bd\'e1\'b9\'fb\'a3\'a8\'ba\'dc\'d6\'d8\'d2\'aa\'a3\'a9
+\f0 \
+print(table(df$genomic_annotation_norm))\
+\
+## =========================\
+## 4. 
+\f1 \'b9\'b9\'d4\'ec\'b7\'d6\'d7\'e9\'b1\'e4\'c1\'bf
+\f0 \
+## =========================\
+df$group <- ifelse(df$is_pQTL == 1, "ed_and_p", "ed_only")\
+\
+print(table(df$group))\
+\
+## =========================\
+## 5. 
+\f1 \'bc\'c6\'cb\'e3
+\f0 \'93
+\f1 \'d7\'e9\'c4\'da\'b1\'c8\'c0\'fd
+\f0 \'94\
+## =========================\
+df_sum <- as.data.frame(\
+  prop.table(\
+    table(df$group, df$genomic_annotation_norm),\
+    margin = 1\
+  )\
+)\
+\
+colnames(df_sum) <- c("Group", "Annotation", "Proportion")\
+\
+## 
+\f1 \'d4\'d9\'bf\'b4\'d2\'bb\'d1\'db\'a3\'ac\'b7\'c0\'d6\'b9\'bf\'d5\'b1\'ed
+\f0 \
+print(head(df_sum))\
+stopifnot(nrow(df_sum) > 0)\
+\
+## =========================\
+## 6. 
+\f1 \'bb\'ad\'cd\'bc\'a3\'a8\'b2\'a2\'c5\'c5\'b6\'d4\'d5\'d5\'a3\'ac\'d7\'ee\'cd\'c6\'bc\'f6\'a3\'a9
+\f0 \
+## =========================\
+p_compare <- ggplot(\
+  df_sum,\
+  aes(x = Annotation, y = Proportion, fill = Group)\
+) +\
+  geom_bar(stat = "identity", position = "dodge") +\
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +\
+  theme_bw() +\
+  theme(\
+    axis.text.x = element_text(angle = 45, hjust = 1),\
+    legend.title = element_blank()\
+  ) +\
+  labs(\
+    title = "Genomic annotation distribution",\
+    x = "Genomic annotation",\
+    y = "Proportion"\
+  )\
+\
+## 
+\f1 \'cf\'d4\'ca\'be\'d4\'da\'b5\'b1\'c7\'b0\'c9\'e8\'b1\'b8
+\f0 \
+print(p_compare)\
+\
+## =========================\
+## 7. 
+\f1 \'b1\'a3\'b4\'e6
+\f0  PDF\
+## =========================\
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/annotation_barplot_compare.pdf",\
+  p_compare,\
+  width = 7,\
+  height = 4\
+)\
+\
+## =========================\
+## 8. 
+\f1 \'a3\'a8\'bf\'c9\'d1\'a1\'b5\'ab\'cd\'c6\'bc\'f6\'a3\'a9\'b7\'d6\'b1\'f0\'b1\'a3\'b4\'e6\'c1\'bd\'d7\'e9
+\f0 \
+## =========================\
+p_ed_only <- ggplot(\
+  subset(df_sum, Group == "ed_only"),\
+  aes(x = Annotation, y = Proportion)\
+) +\
+  geom_bar(stat = "identity", fill = "#C7D9F1", width = 0.7) +\
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +\
+  theme_bw() +\
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +\
+  labs(\
+    title = "Genomic annotation (ed-only)",\
+    x = "Genomic annotation",\
+    y = "Proportion"\
+  )\
+\
+p_ed_and_p <- ggplot(\
+  subset(df_sum, Group == "ed_and_p"),\
+  aes(x = Annotation, y = Proportion)\
+) +\
+  geom_bar(stat = "identity", fill = "#F6C1CC", width = 0.7) +\
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +\
+  theme_bw() +\
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +\
+  labs(\
+    title = "Genomic annotation (ed and p)",\
+    x = "Genomic annotation",\
+    y = "Proportion"\
+  )\
+\
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/annotation_barplot_ed_only.pdf",\
+  p_ed_only,\
+  width = 6,\
+  height = 4\
+)\
+\
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/annotation_barplot_ed_and_p.pdf",\
+  p_ed_and_p,\
+  width = 6,\
+  height = 4\
+)\
+\
+#######
+\f1 \'b4\'f8\'b1\'c8\'c0\'fd\'b5\'c4
+\f0 \
+library(ggplot2)\
+library(scales)\
+\
+p_compare <- ggplot(\
+  df_sum,\
+  aes(x = Annotation, y = Proportion, fill = Group)\
+) +\
+  geom_bar(\
+    stat = "identity",\
+    position = position_dodge(width = 0.9)\
+  ) +\
+  # 
+\f3 \uc0\u55357 \u56633 
+\f0  
+\f1 \'b1\'c8\'c0\'fd\'b1\'ea\'d7\'a2
+\f0 \
+  geom_text(\
+    aes(label = percent(Proportion, accuracy = 0.1)),\
+    position = position_dodge(width = 0.9),\
+    vjust = -0.3,\
+    size = 4.5\
+  ) +\
+  scale_y_continuous(\
+    labels = percent_format(accuracy = 1),\
+    expand = expansion(mult = c(0, 0.15))  # 
+\f1 \'b8\'f8\'ce\'c4\'d7\'d6\'c1\'f4\'bf\'d5\'bc\'e4
+\f0 \
+  ) +\
+  theme_bw() +\
+  theme(\
+    axis.text.x  = element_text(angle = 45, hjust = 1, size = 12),\
+    axis.text.y  = element_text(size = 12),\
+    axis.title.x = element_text(size = 14),\
+    axis.title.y = element_text(size = 14),\
+    plot.title   = element_text(size = 16, face = "bold"),\
+    legend.text  = element_text(size = 12),\
+    legend.title = element_blank()\
+  ) +\
+  labs(\
+    title = "Genomic annotation distribution",\
+    x = "Genomic annotation",\
+    y = "Proportion"\
+  )\
+\
+# 
+\f1 \'cf\'d4\'ca\'be
+\f0 \
+print(p_compare)\
+\
+# 
+\f1 \'b1\'a3\'b4\'e6
+\f0 \
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/annotation_barplot_compare_labeled.pdf",\
+  p_compare,\
+  width = 12,\
+  height = 4.5\
+)\
+\
+\
+\
+\
+\
+\
+###########################
+\f1 \'cf\'e0\'b9\'d8\'d0\'d4\'b7\'d6\'ce\'f6
+\f0 \
+\
+\
+\
+\
+# 1. 
+\f1 \'d7\'d3\'bc\'af
+\f0 \
+df_ep <- subset(df, group == "ed_and_p")\
+\
+df_ep$ed_beta_abs <- abs(df_ep$beta.1)\
+df_ep$p_beta_abs  <- abs(df_ep$X0.1)\
+\
+# 
+\f1 \'c8\'a5
+\f0  NA\
+df_ep <- df_ep[complete.cases(df_ep[, c("ed_beta_abs", "p_beta_abs")]), ]\
+\
+# 
+\f1 \'c8\'a5
+\f0  0
+\f1 \'a3\'a8\'c8\'e7\'b9\'fb\'c4\'e3\'c8\'cf\'ce\'aa
+\f0  0 
+\f1 \'b4\'fa\'b1\'ed\'ce\'de\'d0\'a7\'d3\'a6\'a3\'a9
+\f0 \
+df_ep <- df_ep[df_ep$ed_beta_abs > 0 & df_ep$p_beta_abs > 0, ]\
+\
+nrow(df_ep)\
+\
+# 
+\f1 \'bf\'b4\'d2\'bb\'d1\'db\'d1\'f9\'b1\'be\'c1\'bf
+\f0 \
+nrow(df_ep)\
+\
+cor_pearson <- cor.test(\
+  df_ep$ed_beta_abs,\
+  df_ep$p_beta_abs,\
+  method = "pearson"\
+)\
+\
+cor_pearson\
+\
+\
+#t = 15.665, df = 4589, p-value < 2.2e-16\
+ #     cor \
+#0.2253037 \
+\
+\
+\
+\
+cor_spearman <- cor.test(\
+  df_ep$beta.1,\
+  df_ep$X0.1,\
+  method = "spearman"\
+)\
+\
+cor_spearman\
+\
+\
+library(ggplot2)\
+\
+p_cor <- ggplot(df_ep, aes(x = beta.1, y = X0.1)) +\
+  geom_point(alpha = 0.5, size = 2) +\
+  geom_smooth(method = "lm", se = FALSE, color = "#D55E00") +\
+  theme_bw() +\
+  labs(\
+    title = "Correlation between edQTL and pQTL effect sizes",\
+    x = "edQTL beta",\
+    y = "pQTL beta"\
+  ) +\
+  annotate(\
+    "text",\
+    x = Inf, y = -Inf,\
+    hjust = 1.1, vjust = -0.5,\
+    label = paste0(\
+      "Pearson r = ",\
+      round(cor_pearson$estimate, 3),\
+      "\\nP = ",\
+      signif(cor_pearson$p.value, 3)\
+    ),\
+    size = 4\
+  )\
+\
+print(p_cor)\
+\
+\
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/ed_p_beta_correlation.pdf",\
+  p_cor,\
+  width = 5,\
+  height = 5\
+)\
+\
+##############################################\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\fs72 \cf4 \'d2\'d4\'c9\'cf\'ca\'c7
+\f0  edqtl 
+\f1 \'ba\'cd
+\f0  pqtl 
+\f1 \'b5\'c4\'d0\'a7\'d3\'a6\'d6\'b5\'b1\'c8\'bd\'cf\'a3\'ac\'cf\'c2\'b1\'df\'ca\'c7\'c8\'fd\'d6\'d6
+\f0 QTl 
+\f1 \'b5\'c4\'b1\'c8\'bd\'cf
+\f0\fs36 \cf2 \
+#################################################\
+\
+library(data.table)\
+library(ggplot2)\
+library(ggpubr)\
+\
+# ======================\
+# 
+\f1 \'ca\'e4\'b3\'f6\'c4\'bf\'c2\'bc
+\f0 \
+# ======================\
+outdir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/effcet"\
+dir.create(outdir, showWarnings = FALSE, recursive = TRUE)\
+\
+# ======================\
+# 1. 
+\f1 \'b6\'c1\'c8\'eb\'ca\'fd\'be\'dd
+\f0  & |effect|\
+# ======================\
+\
+# edQTL\
+ed <- fread("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl.significant.coloc.withAnno.txt")\
+ed_eff <- data.table(type = "edQTL", effect = abs(as.numeric(ed[[5]])))\
+\
+# pQTL\
+pq <- fread(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/pQTL/protein_qtl.FDR0.05.allchr.txt",\
+  header = FALSE\
+)\
+pq_eff <- data.table(type = "pQTL", effect = abs(as.numeric(pq[[14]])))\
+\
+# eQTL\
+eq <- fread(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/eqtl.nominal.chrall.sig.symbol",\
+  header = FALSE\
+)\
+eq_eff <- data.table(type = "eQTL", effect = abs(as.numeric(eq[[14]])))\
+\
+# 
+\f1 \'ba\'cf\'b2\'a2
+\f0 \
+dat <- rbind(ed_eff, pq_eff, eq_eff)\
+dat <- dat[!is.na(effect)]\
+\
+# ======================\
+# 2. 
+\f1 \'bc\'c6\'cb\'e3\'be\'f9\'d6\'b5\'b2\'a2\'b0\'b4\'b4\'d3\'b8\'df\'b5\'bd\'b5\'cd\'c5\'c5\'d0\'f2
+\f0 \
+# ======================\
+mean_df <- dat[, .(mean_effect = mean(effect)), by = type]\
+mean_df <- mean_df[order(-mean_effect)]\
+\
+# 
+\f1 \'c9\'e8\'d6\'c3
+\f0  factor 
+\f1 \'cb\'b3\'d0\'f2
+\f0 \
+dat[, type := factor(type, levels = mean_df$type)]\
+\
+# ======================\
+# 3. 
+\f1 \'c1\'bd\'c1\'bd\'b1\'c8\'bd\'cf
+\f0 \
+# ======================\
+comparisons <- list(\
+  c("edQTL", "eQTL"),\
+  c("edQTL", "pQTL"),\
+  c("eQTL", "pQTL")\
+)\
+\
+# ======================\
+# 4. 
+\f1 \'d7\'f7\'cd\'bc\'a3\'a8\'d0\'de\'d5\'fd\'ba\'f3\'b5\'c4\'b0\'e6\'b1\'be\'a3\'a9
+\f0 \
+# ======================\
+p <- ggplot(dat, aes(x = type, y = effect)) +\
+  geom_boxplot(\
+    width = 0.55,\
+    fill = "grey85",\
+    outlier.shape = NA,\
+    size = 0.8\
+  ) +\
+\
+  # 
+\f1 \'be\'f9\'d6\'b5\'b5\'e3
+\f0 \
+  geom_point(\
+    data = mean_df,\
+    aes(x = type, y = mean_effect),\
+    color = "red",\
+    size = 3.5\
+  ) +\
+\
+  # 
+\f1 \'be\'f9\'d6\'b5\'ce\'c4\'d7\'d6
+\f0 \
+  geom_text(\
+    data = mean_df,\
+    aes(\
+      x = type,\
+      y = mean_effect,\
+      label = sprintf("mean = %.3f", mean_effect)\
+    ),\
+    vjust = -1.1,\
+    size = 5\
+  ) +\
+\
+  # 
+\f1 \'cf\'d4\'d6\'f8\'d0\'d4\'b1\'ea\'d7\'a2
+\f0 \
+  stat_compare_means(\
+    comparisons = comparisons,\
+    method = "wilcox.test",\
+    label = "p.signif",\
+    hide.ns = TRUE,\
+    size = 6,\
+    tip.length = 0.01\
+  ) +\
+\
+  # 
+\f1 \'bf\'d8\'d6\'c6
+\f0  y 
+\f1 \'d6\'e1\'b8\'df\'b6\'c8
+\f0 \
+  coord_cartesian(ylim = c(0, 0.8)) +\
+\
+  theme_classic() +\
+  theme(\
+    plot.title = element_text(size = 16, hjust = 0.5),\
+    axis.title.y = element_text(size = 16),\
+    axis.text.x  = element_text(size = 15),\
+    axis.text.y  = element_text(size = 15),\
+    plot.margin = margin(t = 20, r = 10, b = 10, l = 10)\
+  ) +\
+  labs(\
+    x = "",\
+    y = "|Effect size|",\
+    title = "Comparison of absolute effect sizes across QTL types"\
+  )\
+\
+# ======================\
+# 5. 
+\f1 \'ca\'e4\'b3\'f6
+\f0 \
+# ======================\
+ggsave(\
+  file.path(outdir, "abs_effect_size_comparison_clean.png"),\
+  p,\
+  width = 7,\
+  height = 5,\
+  dpi = 300\
+)\
+\
+ggsave(\
+  file.path(outdir, "abs_effect_size_comparison_clean.pdf"),\
+  p,\
+  width = 7,\
+  height = 5\
+)\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

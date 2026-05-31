@@ -1,0 +1,290 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww23420\viewh16420\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/\
+\
+#pQTLsig(hg38)\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/pQTL/protein_qtl.FDR0.05.allchr.txt\
+PITRM1|Q5JRX3   10      3137729 3172841 -       5372    20144   10_3117585_C_G  10      3117585 3117585 5.03898e-08     0.198134        -0.378098       0.0654649 0       0.000337356034490987    PITRM1\
+PITRM1|Q5JRX3   10      3137729 3172841 -       5372    1\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withpqtl/protein_qtl.nominal.all.txt\
+eGene   eSNP    snp_chr snp_pos beta    pvalue\
+NOC2L|Q9Y3T9    1_16378_T_C     1       16378   -0.0159455      0.840821\
+NOC2L|Q9Y3T9    1_16495_G_C     1       16495   -0.0159455      0.840821\
+\
+###effct 
+\f1 \'b1\'c8\'bd\'cf
+\f0 \
+library(data.table)\
+library(ggplot2)\
+\
+# paths\
+infile <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt"\
+outdir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/"\
+\
+dir.create(outdir, recursive = TRUE, showWarnings = FALSE)\
+\
+# load data\
+df <- fread(infile)\
+df <- df[!is.na(beta_ed)]\
+\
+df[, group := ifelse(ispQTL == 1,\
+                     "Overlap (edQTL+pQTL)",\
+                     "Background (edQTL only)")]\
+\
+df[, abs_beta_ed := abs(beta_ed)]\
+\
+# -------------------------------\
+# statistics\
+# -------------------------------\
+mean_df <- df[, .(\
+  mean_abs_beta_ed = mean(abs_beta_ed)\
+), by = group]\
+\
+wilcox_res <- wilcox.test(abs_beta_ed ~ group, data = df)\
+pval <- wilcox_res$p.value\
+pval_label <- paste0("Wilcoxon p = ", formatC(pval, format = "e", digits = 2))\
+\
+# y position for text\
+y_max <- max(df$abs_beta_ed) * 1.1\
+\
+# -------------------------------\
+# plot\
+# -------------------------------\
+p <- ggplot(df, aes(x = group, y = abs_beta_ed, fill = group)) +\
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +\
+  theme_classic() +\
+  theme(\
+    legend.position = "none",\
+    axis.title.x = element_blank()\
+  ) +\
+  ylab("|beta_ed|") +\
+  geom_text(\
+    data = mean_df,\
+    aes(x = group,\
+        y = mean_abs_beta_ed,\
+        label = paste0("mean = ", round(mean_abs_beta_ed, 3))),\
+    vjust = -1,\
+    size = 3.5\
+  ) +\
+  annotate(\
+    "text",\
+    x = 1.5,\
+    y = y_max,\
+    label = pval_label,\
+    size = 4\
+  )\
+\
+ggsave(\
+  filename = paste0(outdir, "abs_beta_ed_boxplot_mean_p_overlap_vs_background.pdf"),\
+  plot = p,\
+  width = 5,\
+  height = 4\
+)\
+\
+cat("Done. Figure saved in:\\n", outdir, "\\n")\
+\
+\
+\
+###\
+###\
+###\
+
+\f1 \'b8\'bb\'bc\'af
+\f0 \
+###\
+###\
+###\
+library(data.table)\
+library(clusterProfiler)\
+library(org.Hs.eg.db)\
+library(ggplot2)\
+\
+# -------------------------------\
+# paths\
+# -------------------------------\
+infile <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt"\
+outdir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/GO_enrichment/"\
+\
+dir.create(outdir, recursive = TRUE, showWarnings = FALSE)\
+\
+# -------------------------------\
+# load data\
+# -------------------------------\
+df <- fread(infile)\
+\
+# gene sets\
+genes_overlap <- unique(df[ispQTL == 1 & gene_name != "", gene_name])\
+genes_edonly  <- unique(df[ispQTL == 0 & gene_name != "", gene_name])\
+\
+# -------------------------------\
+# SYMBOL -> ENTREZID\
+# -------------------------------\
+conv_overlap <- bitr(\
+  genes_overlap,\
+  fromType = "SYMBOL",\
+  toType = "ENTREZID",\
+  OrgDb = org.Hs.eg.db\
+)\
+\
+conv_edonly <- bitr(\
+  genes_edonly,\
+  fromType = "SYMBOL",\
+  toType = "ENTREZID",\
+  OrgDb = org.Hs.eg.db\
+)\
+\
+# -------------------------------\
+# GO enrichment (BP)\
+# -------------------------------\
+ego_overlap <- enrichGO(\
+  gene          = conv_overlap$ENTREZID,\
+  OrgDb         = org.Hs.eg.db,\
+  ont           = "BP",\
+  pAdjustMethod = "BH",\
+  readable      = TRUE\
+)\
+\
+ego_edonly <- enrichGO(\
+  gene          = conv_edonly$ENTREZID,\
+  OrgDb         = org.Hs.eg.db,\
+  ont           = "BP",\
+  pAdjustMethod = "BH",\
+  readable      = TRUE\
+)\
+\
+# save full tables\
+write.table(\
+  ego_overlap@result,\
+  file = paste0(outdir, "GO_BP_overlap_full.txt"),\
+  sep = "\\t",\
+  quote = FALSE,\
+  row.names = FALSE\
+)\
+\
+write.table(\
+  ego_edonly@result,\
+  file = paste0(outdir, "GO_BP_edonly_full.txt"),\
+  sep = "\\t",\
+  quote = FALSE,\
+  row.names = FALSE\
+)\
+\
+# -------------------------------\
+# take top 5\
+# -------------------------------\
+top_overlap <- head(ego_overlap@result, 5)\
+top_overlap$Group <- "Overlap (edQTL+pQTL)"\
+\
+top_edonly <- head(ego_edonly@result, 5)\
+top_edonly$Group <- "edQTL only"\
+\
+top_all <- rbind(top_overlap, top_edonly)\
+\
+# -------------------------------\
+# plot: Top5 dotplot\
+# -------------------------------\
+p <- ggplot(\
+  top_all,\
+  aes(\
+    x = Group,\
+    y = reorder(Description, Count),\
+    size = Count,\
+    color = p.adjust\
+  )\
+) +\
+  geom_point() +\
+  scale_color_continuous(low = "red", high = "blue", name = "adj.P") +\
+  theme_classic() +\
+  ylab("GO Biological Process") +\
+  xlab("") +\
+  ggtitle("Top enriched GO terms (Top 5 per group)")\
+\
+ggsave(\
+  filename = paste0(outdir, "GO_BP_Top5_overlap_vs_edonly.pdf"),\
+  plot = p,\
+  width = 7,\
+  height = 4\
+)\
+\
+cat("GO enrichment finished.\\nResults saved in:\\n", outdir, "\\n")\
+\
+\
+\
+\
+\
+########################\
+\
+awk 'NR==1 || $(NF-2)==1' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/edqtl_with_pqtl_flag_and_beta.clean.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/edqtl_overlap_only.txt\
+\
+\
+######
+\f1 \'c1\'d7\'cb\'e1\'bb\'af
+\f0 \
+CPEB
+\f1 \'a3\'a8
+\f0 Cytoplasmic polyadenylation element binding protein
+\f1 \'a3\'a9
+\f0 \
+TIA1
+\f1 \'a3\'a8
+\f0 T cell restricted intracellular antigen 1
+\f1 \'a3\'a9
+\f0 \
+\
+################################################\
+\
+exon \uc0\u37096 \u20998 \u21644  pQTL   overlap \
+\
+\
+\
+awk -F'\\t' '\
+NR==FNR \{\
+    key = $2 "_" $10\
+    a[key] = $1 "\\t" $5 "\\t" $9\
+    next\
+\}\
+NR>1 \{\
+    split($1, g, "|")\
+    gene = g[1]\
+    key = $2 "_" gene\
+    if (key in a) \{\
+        print a[key] "\\t" $0\
+    \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/edqtl_exonic_only.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withpqtl/protein_qtl.nominal.all.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/vsPQTL/exonic_edqtl_matched_pqtl.txt\
+\
+\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7759\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

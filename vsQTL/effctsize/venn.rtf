@@ -1,0 +1,315 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red253\green165\blue49;}
+{\*\expandedcolortbl;;\cssrgb\c99945\c70410\c24558;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww21080\viewh14020\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 # ===============================\
+# ed / e / p QTL gene overlap\
+# ===============================\
+\
+library(VennDiagram)\
+library(grid)\
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/")\
+# 1. \uc0\u35835 \u20837  gene sets\
+ed  <- scan("col1.uniq", what = character())\
+eq  <- scan("col2.uniq", what = character())\
+pq  <- scan("col3.uniq", what = character())\
+\
+# 2. \uc0\u22522 \u26412 \u25968 \u37327 \
+n_ed <- length(ed)\
+n_eq <- length(eq)\
+n_pq <- length(pq)\
+\
+# 3. \uc0\u20132 \u38598 \
+ed_eq    <- intersect(ed, eq)\
+ed_pq    <- intersect(ed, pq)\
+eq_pq    <- intersect(eq, pq)\
+ed_eq_pq <- Reduce(intersect, list(ed, eq, pq))\
+\
+# 4. \uc0\u21508 \u21306 \u22495 \u25968 \u37327 \u65288 Venn \u38656 \u35201 \'93\u32431 \u21306 \u22495 \'94\u65289 \
+n_ed_only <- length(setdiff(ed, union(eq, pq)))\
+n_eq_only <- length(setdiff(eq, union(ed, pq)))\
+n_pq_only <- length(setdiff(pq, union(ed, eq)))\
+\
+n_ed_eq_only <- length(setdiff(ed_eq, pq))\
+n_ed_pq_only <- length(setdiff(ed_pq, eq))\
+n_eq_pq_only <- length(setdiff(eq_pq, ed))\
+\
+n_all <- length(ed_eq_pq)\
+\
+# 5. \uc0\u27604 \u20363 \u65288 \u20197 \u21508 \u33258 \u38598 \u21512 \u20026  denominator\u65289 \
+pct <- function(x, total) round(100 * x / total, 2)\
+\
+# 6. \uc0\u25171 \u21360 \u32479 \u35745 \u34920 \u65288 \u24378 \u28872 \u24314 \u35758 \u20445 \u23384 \u65289 \
+stat <- data.frame(\
+  Category = c(\
+    "ed-only", "e-only", "p-only",\
+    "ed \uc0\u8745  e", "ed \u8745  p", "e \u8745  p",\
+    "ed \uc0\u8745  e \u8745  p"\
+  ),\
+  Count = c(\
+    n_ed_only,\
+    n_eq_only,\
+    n_pq_only,\
+    n_ed_eq_only,\
+    n_ed_pq_only,\
+    n_eq_pq_only,\
+    n_all\
+  )\
+)\
+\
+write.table(stat,\
+            file = "ed_eq_pqtl_overlap_counts.txt",\
+            sep = "\\t",\
+            quote = FALSE,\
+            row.names = FALSE)\
+\
+# 7. \uc0\u30011  Venn \u22270 \u65288 \u25968 \u37327 \u65289 \
+venn.plot <- draw.triple.venn(\
+  area1 = n_ed,\
+  area2 = n_eq,\
+  area3 = n_pq,\
+  n12 = length(ed_eq),\
+  n13 = length(ed_pq),\
+  n23 = length(eq_pq),\
+  n123 = n_all,\
+\
+  # === \uc0\u25913 \u36825 \u37324  ===\
+  category = c("edGene", "eGene", "pGene"),\
+\
+  cat.pos  = c(-20, 20, -120),   # \uc0\u31532 \u19977 \u20010 \u21521 \u19979 \
+  cat.dist = c(0.05, 0.05, 0.05),  # \uc0\u31532 \u19977 \u20010 \u31245 \u24494 \u36828 \u19968 \u28857 \
+\
+\
+\
+fill = c("#FADADD",  # baby pink\
+         "#D6EAF8",  # baby blue\
+         "#D5F5E3")  ,\
+  alpha = 0.6,\
+  cex = 2,\
+  cat.cex = 2\
+)\
+\
+pdf("ed_e_p_gene_venn2.pdf", width = 5, height = 5)\
+grid.draw(venn.plot)\
+dev.off()\
+\
+\
+
+\fs72 \cf2 ######################\uc0\u26609 \u29366 \u22270 \cf0 \
+
+\fs36  #fill = c("#F6C1CC",  # \uc0\u31881 \u65288 edGene\u65289 \
+         "#C7D9F1",  # \uc0\u27973 \u34013 \u65288 eGene\u65289 \
+         "#CDE9D6")  \
+###############\
+\
+library(ggplot2)\
+\
+# \uc0\u35835 \u20837  gene sets\
+ed <- scan("col1.uniq", what = character())\
+eq <- scan("col2.uniq", what = character())\
+pq <- scan("col3.uniq", what = character())\
+\
+# universe\
+universe <- sort(unique(c(ed, eq, pq)))\
+N <- length(universe)\
+\
+# \uc0\u21028 \u23450 \u27599 \u20010  gene \u23646 \u20110 \u21738 \u19968 \u31867 \
+classify <- function(g) \{\
+  in_ed <- g %in% ed\
+  in_eq <- g %in% eq\
+  in_pq <- g %in% pq\
+\
+  if (in_ed & !in_eq & !in_pq) return("ed-only")\
+  if (!in_ed & in_eq & !in_pq) return("e-only")\
+  if (!in_ed & !in_eq & in_pq) return("p-only")\
+  if (in_ed & in_eq & !in_pq) return("ed \uc0\u8745  e")\
+  if (in_ed & !in_eq & in_pq) return("ed \uc0\u8745  p")\
+  if (!in_ed & in_eq & in_pq) return("e \uc0\u8745  p")\
+  if (in_ed & in_eq & in_pq) return("ed \uc0\u8745  e \u8745  p")\
+\}\
+\
+category <- sapply(universe, classify)\
+\
+df <- as.data.frame(table(category))\
+colnames(df) <- c("Category", "Count")\
+df$Proportion <- df$Count / N\
+\
+# \uc0\u25490 \u24207 \u65288 \u25353 \u29983 \u29289 \u23398 \u36923 \u36753 \u65292 \u19981 \u26159 \u23383 \u27597 \u65289 \
+df$Category <- factor(\
+  df$Category,\
+  levels = c(\
+    "ed-only", "e-only", "p-only",\
+    "ed \uc0\u8745  e", "ed \u8745  p", "e \u8745  p",\
+    "ed \uc0\u8745  e \u8745  p"\
+  )\
+)\
+\
+# \uc0\u20445 \u23384 \u32479 \u35745 \u34920 \u65288 \u35770 \u25991 \u34917 \u20805 \u26448 \u26009 \u65289 \
+write.table(\
+  df,\
+  file = "ed_eq_pqtl_universe_partition.txt",\
+  sep = "\\t",\
+  quote = FALSE,\
+  row.names = FALSE\
+)\
+\
+###########snp \uc0\u21644 pair\
+\
+\
+stewed("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/")\
+\
+\
+library(VennDiagram)\
+library(grid)\
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp")\
+\
+e  <- scan("eSNP.uniq", what = character())\
+ed <- scan("edSNP.uniq", what = character())\
+p  <- scan("pSNP.uniq", what = character())\
+\
+venn.snp <- draw.triple.venn(\
+  area1 = length(ed),\
+  area2 = length(e),\
+  area3 = length(p),\
+  n12 = length(intersect(ed, e)),\
+  n13 = length(intersect(ed, p)),\
+  n23 = length(intersect(e, p)),\
+  n123 = length(Reduce(intersect, list(ed, e, p))),\
+  category = c("edSNP", "eSNP", "pSNP"),\
+\
+  cat.pos  = c(-20, 20, -120),   # \uc0\u31532 \u19977 \u20010 \u21521 \u19979 \
+  cat.dist = c(0.05, 0.05, 0.05),  # \uc0\u31532 \u19977 \u20010 \u31245 \u24494 \u36828 \u19968 \u28857 \
+\
+\
+\
+fill = c("#FADADD",  # baby pink\
+         "#D6EAF8",  # baby blue\
+         "#D5F5E3")  ,\
+  alpha = 0.6,\
+  cex = 2,\
+  cat.cex = 2\
+)\
+\
+\
+pdf("SNP_venn.pdf", width = 5, height = 5)\
+grid.draw(venn.snp)\
+dev.off()\
+\
+###########snp \uc0\u26609 \u29366 \u22270 \
+library(ggplot2)\
+library(scales)\
+\
+universe <- unique(c(ed, e, p))\
+\
+classify <- function(x) \{\
+  in_ed <- x %in% ed\
+  in_e  <- x %in% e\
+  in_p  <- x %in% p\
+\
+  if (in_ed & !in_e & !in_p) return("ed-only")\
+  if (!in_ed & in_e & !in_p) return("e-only")\
+  if (!in_ed & !in_e & in_p) return("p-only")\
+  if (in_ed & in_e & !in_p) return("ed \uc0\u8745  e")\
+  if (in_ed & !in_e & in_p) return("ed \uc0\u8745  p")\
+  if (!in_ed & in_e & in_p) return("e \uc0\u8745  p")\
+  if (in_ed & in_e & in_p) return("ed \uc0\u8745  e \u8745  p")\
+\}\
+\
+df.snp <- as.data.frame(table(sapply(universe, classify)))\
+colnames(df.snp) <- c("Category", "Count")\
+df.snp$Proportion <- df.snp$Count / sum(df.snp$Count)\
+\
+df.snp$Category <- factor(\
+  df.snp$Category,\
+  levels = c(\
+    "ed-only", "e-only", "p-only",\
+    "ed \uc0\u8745  e", "ed \u8745  p", "e \u8745  p",\
+    "ed \uc0\u8745  e \u8745  p"\
+  )\
+)\
+\
+ggplot(df.snp, aes(x = Category, y = Proportion, fill = Category)) +\
+  geom_bar(stat = "identity", width = 0.7) +\
+  geom_text(\
+    aes(label = percent(Proportion, accuracy = 0.1)),\
+    vjust = -0.3, size = 3.6\
+  ) +\
+  scale_y_continuous(\
+    limits = c(0, 0.15),\
+    labels = percent_format(accuracy = 1),\
+    expand = expansion(mult = c(0, 0.05))\
+  ) +\
+  theme_bw() +\
+  theme(\
+    legend.position = "none",\
+    axis.text.x = element_text(angle = 45, hjust = 1)\
+  )\
+\
+ggsave("SNP_universe_barplot.pdf", width = 7, height = 4)\
+\
+################\
+#pair \
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/pair/")\
+\
+library(VennDiagram)\
+library(grid)\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/pair")\
+\
+e  <- read.table("ePair.uniq", sep = "\\t", stringsAsFactors = FALSE)\
+ed <- read.table("edPair.uniq", sep = "\\t", stringsAsFactors = FALSE)\
+p  <- read.table("pPair.uniq", sep = "\\t", stringsAsFactors = FALSE)\
+\
+e$key  <- paste(e$V1, e$V2, sep = "_")\
+ed$key <- paste(ed$V1, ed$V2, sep = "_")\
+p$key  <- paste(p$V1, p$V2, sep = "_")\
+\
+\
+\
+venn.pair <- draw.triple.venn(\
+  area1 = length(ed$key),\
+  area2 = length(e$key),\
+  area3 = length(p$key),\
+  n12 = length(intersect(ed$key, e$key)),\
+  n13 = length(intersect(ed$key, p$key)),\
+  n23 = length(intersect(e$key, p$key)),\
+  n123 = length(Reduce(intersect, list(ed$key, e$key, p$key))),\
+  category = c("edPair", "ePair", "pPair"),\
+\
+  cat.pos  = c(-20, 20, -120),   # \uc0\u31532 \u19977 \u20010 \u21521 \u19979 \
+  cat.dist = c(0.05, 0.05, 0.05),  # \uc0\u31532 \u19977 \u20010 \u31245 \u24494 \u36828 \u19968 \u28857 \
+\
+\
+\
+fill = c("#FADADD",  # baby pink\
+         "#D6EAF8",  # baby blue\
+         "#D5F5E3")  ,\
+  alpha = 0.6,\
+  cex = 2,\
+  cat.cex = 2\
+)\
+\
+pdf("pair_venn.pdf", width = 6, height = 6)\
+grid.draw(venn.pair)\
+dev.off()\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

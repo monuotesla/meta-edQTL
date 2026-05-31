@@ -1,0 +1,235 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red253\green128\blue8;\red251\green2\blue7;}
+{\*\expandedcolortbl;;\cssrgb\c100000\c57637\c0;\cssrgb\c100000\c14913\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww20620\viewh16100\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs34 \cf0 \
+mkdir -p /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/\
+\
+\
+\
+awk -F'\\t' '\{print $1\}' edsite_gene_pli.txt | sort -u > /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/edQTL_unique_genes.txt\
+\
+library(clusterProfiler)\
+library(org.Hs.eg.db)\
+library(data.table)\
+\
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/")\
+# 1. \uc0\u35835 \u21462 \u25968 \u25454 \
+# \uc0\u20551 \u35774  egenes.txt \u27599 \u34892 \u19968 \u20010  ENSG ID\u65292 \u25110 \u32773 \u22312 \u31532 \u19968 \u21015 \
+input_file <- "egenes.txt"\
+egene_data <- fread(input_file, header = FALSE)\
+ensg_ids <- unique(egene_data$V1)\
+\
+# \uc0\u21435 \u38500 \u29256 \u26412 \u21495 \u65288 \u20363 \u22914 \u23558  ENSG00000139618.15 \u21464 \u20026  ENSG00000139618\u65289 \
+#ensg_ids_clean <- gsub("\\\\..*", "", ensg_ids)\
+\
+# 2. \uc0\u36827 \u34892  ID \u36716 \u25442 \
+message("\uc0\u27491 \u22312 \u36827 \u34892  ID \u36716 \u25442 ...")\
+gene_conversion <- bitr(\cf2 ensg_id\cf0 s, \
+                        fromType = "ENSEMBL", \
+                        toType   = "SYMBOL", \
+                        OrgDb    = org.Hs.eg.db)\
+\
+# 3. \uc0\u25552 \u21462  Symbol \u24182 \u21435 \u37325 \
+unique_symbols <- unique(gene_conversion$SYMBOL)\
+\
+# 4. \uc0\u35774 \u32622 \u36755 \u20986 \u36335 \u24452 \u24182 \u20445 \u23384 \
+out_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/"\
+if(!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)\
+\
+output_file <- file.path(out_dir, "eqtl_unique_gene_symbols.txt")\
+writeLines(unique_symbols, output_file)\
+\
+cat("\uc0\u36716 \u25442 \u23436 \u25104 \u65281 \\n")\
+cat("\uc0\u21407 \u22987  ENSG \u25968 \u37327 :", length(ensg_ids), "\\n")\
+cat("\uc0\u25104 \u21151 \u36716 \u25442 \u24182 \u21435 \u37325 \u21518 \u30340  Symbol \u25968 \u37327 :", length(unique_symbols), "\\n")\
+cat("\uc0\u32467 \u26524 \u24050 \u20445 \u23384 \u33267 :", output_file, "\\n")\
+\
+\cf3 \uc0\u36716 \u25442 \u23436 \u25104 \u65281 \
+\uc0\u21407 \u22987  ENSG \u25968 \u37327 : 17400 \
+\uc0\u25104 \u21151 \u36716 \u25442 \u24182 \u21435 \u37325 \u21518 \u30340  Symbol \u25968 \u37327 : 14556 \
+\uc0\u32467 \u26524 \u24050 \u20445 \u23384 \u33267 : /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA//eqtl_unique_gene_symbols.txt \
+\cf0 \
+\
+\
+##################################\
+\
+\
+# 1. \uc0\u36827 \u20837 \u30446 \u24405 \
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/\
+\
+# 2. \uc0\u30830 \u20445 \u25991 \u20214 \u24050 \u25490 \u24207 \u65288 comm \u35201 \u27714 \u36755 \u20837 \u24517 \u39035 \u26159 \u26377 \u24207 \u30340 \u65289 \
+sort eqtl_unique_gene_symbols.txt > eqtl_sorted.txt\
+sort edQTL_unique_genes.txt > edqtl_sorted.txt\
+\
+# 3. \uc0\u25552 \u21462 \u19977 \u20010 \u38598 \u21512 \
+# comm \uc0\u21629 \u20196 \u36755 \u20986 \u19977 \u21015 \u65306 1-\u20165 \u25991 \u20214 1\u26377 \u65292 2-\u20165 \u25991 \u20214 2\u26377 \u65292 3-\u20849 \u26377 \
+\
+# A. \uc0\u31532 \u20108 \u20010 \u25991 \u20214 \u29305 \u26377 \u30340  (edQTL unique)\
+comm -13 eqtl_sorted.txt edqtl_sorted.txt > edQTL_only_genes.txt\
+\
+# B. \uc0\u31532 \u19968 \u20010 \u25991 \u20214 \u29305 \u26377 \u30340  (eQTL unique)\
+comm -23 eqtl_sorted.txt edqtl_sorted.txt > eQTL_only_genes.txt\
+\
+# C. \uc0\u20004 \u20010 \u25991 \u20214 \u37325 \u21512 \u30340  (Common/Overlap)\
+comm -12 eqtl_sorted.txt edqtl_sorted.txt > overlap_genes.txt\
+\
+# \uc0\u28165 \u29702 \u20020 \u26102 \u25490 \u24207 \u25991 \u20214 \
+rm eqtl_sorted.txt edqtl_sorted.txt\
+\
+###################\uc0\u22788 \u29702 \u22909 \u20102 \u65292 \u24320 \u22987 \u23500 \u38598 \
+\
+library(data.table)\
+\
+# 1. \uc0\u35774 \u32622 \u36335 \u24452 \
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/")\
+\
+# 2. \uc0\u20934 \u22791 \u32972 \u26223 \u38598  (Reference Sets)\
+# A. miRNA \uc0\u32972 \u26223 \u38598 \u65306 \u25552 \u21462 \u31532 \u22235 \u21015 \u24182 \u21435 \u37325 \
+mirna_data <- fread("miRNA.txt", header = FALSE)\
+mirna_bg <- unique(mirna_data[[4]])\
+mirna_bg <- mirna_bg[mirna_bg != "" & !is.na(mirna_bg)]\
+\
+# B. Suny \uc0\u32972 \u26223 \u38598 \u65306 \u25552 \u21462 \u31532 \u20108 \u21015 \u65292 \u21435 \u37325 \u65292 \u21435 \u25481 \u29256 \u26412 \u21495 \
+suny_data <- fread("suny_1182_sigpair.txt", header = FALSE)\
+suny_bg <- unique(gsub("\\\\..*", "", suny_data[[2]]))\
+suny_bg <- suny_bg[suny_bg != "" & !is.na(suny_bg)]\
+\
+# 3. \uc0\u20934 \u22791 \u24453 \u20998 \u26512 \u30340 \u19977 \u20010 \u22522 \u22240 \u38598 \
+gene_sets <- list(\
+  Overlap = readLines("overlap_genes.txt"),\
+  edQTL_only = readLines("edQTL_only_genes.txt"),\
+  eQTL_only = readLines("eQTL_only_genes.txt")\
+)\
+\
+# 4. \uc0\u23450 \u20041 \u32972 \u26223 \u24635 \u37327  (Genome Universe)\
+# \uc0\u36890 \u24120 \u35774 \u20026 \u20840 \u22522 \u22240 \u32452 \u20013 \u26377 \u27880 \u37322 \u30340 \u22522 \u22240 \u25968 \u65292 \u32422  20,000\
+universe_n <- 20000 \
+\
+# 5. \uc0\u23450 \u20041 \u23500 \u38598 \u35745 \u31639 \u20989 \u25968 \
+calculate_enrichment <- function(target_genes, reference_bg, universe_size, label, ref_name) \{\
+  # \uc0\u20132 \u38598 \u25968 \u37327  (k)\
+  intersection <- intersect(target_genes, reference_bg)\
+  k <- length(intersection)\
+  \
+  # \uc0\u23454 \u39564 \u32452 \u22823 \u23567  (n)\
+  n <- length(target_genes)\
+  \
+  # \uc0\u32972 \u26223 \u38598 \u22823 \u23567  (M)\
+  M <- length(reference_bg)\
+  \
+  # \uc0\u35745 \u31639  Fold Enrichment: (k/n) / (M/N)\
+  fold_enrichment <- (k / n) / (M / universe_size)\
+  \
+  # \uc0\u35745 \u31639 \u36229 \u20960 \u20309 \u20998 \u24067  P \u20540  (Fisher's Exact Test)\
+  # q: \uc0\u25104 \u21151 \u27425 \u25968 -1, m: \u32972 \u26223 \u20013 \u25104 \u21151 \u24635 \u25968 , n: \u32972 \u26223 \u20013 \u22833 \u36133 \u24635 \u25968 , k: \u25277 \u21462 \u27425 \u25968 \
+  p_val <- phyper(k - 1, M, universe_size - M, n, lower.tail = FALSE)\
+  \
+  return(data.table(\
+    GeneSet = label,\
+    Reference = ref_name,\
+    Intersection_Count = k,\
+    GeneSet_Size = n,\
+    Ref_Size = M,\
+    Fold_Enrichment = fold_enrichment,\
+    P_value = p_val\
+  ))\
+\}\
+\
+# 6. \uc0\u36816 \u34892 \u20998 \u26512 \
+results <- list()\
+\
+for (ref_list in list(list(mirna_bg, "miRNA_Targets"), list(suny_bg, "Suny_SigPairs"))) \{\
+  for (set_name in names(gene_sets)) \{\
+    res <- calculate_enrichment(\
+      target_genes = gene_sets[[set_name]],\
+      reference_bg = ref_list[[1]],\
+      universe_size = universe_n,\
+      label = set_name,\
+      ref_name = ref_list[[2]]\
+    )\
+    results[[paste(ref_list[[2]], set_name, sep = "_")]] <- res\
+  \}\
+\}\
+\
+# 7. \uc0\u21512 \u24182 \u32467 \u26524 \u24182 \u36755 \u20986 \
+final_results <- rbindlist(results)\
+print(final_results)\
+\
+# \uc0\u20445 \u23384 \u32479 \u35745 \u32467 \u26524 \
+fwrite(final_results, "Enrichment_Stats_miRNA_and_Suny.txt", sep = "\\t")\
+\
+\
+library(ggplot2)\
+library(data.table)\
+\
+# 1. \uc0\u25968 \u25454 \u22788 \u29702 \u65288 \u25215 \u25509 \u19978 \u19968 \u27493 \u65289 \
+# \uc0\u30830 \u20445  Sig \u26631 \u31614 \u24050 \u32463 \u29983 \u25104 \
+final_results[, Sig := cut(P_value, breaks=c(-Inf, 0.001, 0.01, 0.05, Inf), \
+                          labels=c("***", "**", "*", "ns"))]\
+\
+# 2. \uc0\u32472 \u21046 \u27668 \u27873 \u22270 \
+p <- ggplot(final_results, aes(x = GeneSet, y = Reference)) +\
+  # \uc0\u32472 \u21046 \u27668 \u27873 \u65306 \u39068 \u33394 \u20195 \u34920  P \u20540 \u28145 \u24230 \u65292 \u22823 \u23567 \u20195 \u34920 \u20493 \u25968 \
+  geom_point(aes(size = Fold_Enrichment, color = logP)) +\
+  \
+  # --- \uc0\u20462 \u25913 \u35201 \u27714  1: \u26631 \u27880 \u20493 \u25968  (Fold) ---\
+  # \uc0\u25918 \u22312 \u27668 \u27873 \u19978 \u26041  (vjust \u20026 \u36127 \u20540 )\u65292 \u22686 \u22823  size\
+  geom_text(aes(label = sprintf("%.2f", Fold_Enrichment)), \
+            vjust = -2.5,        # \uc0\u24448 \u19978 \u31227 \u26356 \u22810 \u65292 \u38450 \u27490 \u37325 \u21472 \
+            size = 4.5,          # \uc0\u23383 \u20307 \u21152 \u22823 \
+            fontface = "bold", \
+            color = "black") +\
+  \
+  # --- \uc0\u20462 \u25913 \u35201 \u27714  2: \u26631 \u27880 \u26174 \u33879 \u24615  (P-value Sig) ---\
+  # \uc0\u25918 \u22312 \u27668 \u27873 \u19979 \u26041  (vjust \u20026 \u27491 \u20540 )\
+  geom_text(aes(label = Sig), \
+            vjust = 3,         # \uc0\u24448 \u19979 \u31227 \
+            size = 6,            # \uc0\u26143 \u21495 \u25110  ns \u23383 \u20307 \u22823 \u19968 \u20123 \u26356 \u28165 \u26224 \
+            fontface = "bold", \
+            color = "black") +\
+  \
+  # \uc0\u35774 \u32622 \u28176 \u21464 \u33394 \u65306 \u20174 \u27973 \u30333 /\u32418 \u21040 \u28145 \u32418 \
+  scale_color_gradient(low = "#FFF5F0", high = "#CB181D", name = "-log10(P-val)") +\
+  \
+  # \uc0\u35774 \u32622 \u22278 \u29699 \u22823 \u23567 \u33539 \u22260 \
+  scale_size_continuous(range = c(8, 20), name = "Fold Enrichment") +\
+  \
+  theme_bw() +\
+  labs(\
+    title = "Functional Enrichment Analysis (3x2)",\
+    x = "Gene Sets",\
+    y = "Reference Context"\
+  ) +\
+  theme(\
+    axis.text.x = element_text(size = 12, face = "bold", color = "black"),\
+    axis.text.y = element_text(size = 12, face = "bold", color = "black"),\
+    axis.title = element_text(size = 14, face = "bold"),\
+    panel.grid.major = element_line(color = "grey95"),\
+    legend.position = "right",\
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")\
+  ) +\
+  # \uc0\u36827 \u19968 \u27493 \u25193 \u22823  Y \u36724 \u38388 \u36317 \u65292 \u20026 \u19978 \u19979 \u20004 \u34892 \u25991 \u23383 \u30041 \u20986 \u31354 \u38388 \
+  scale_y_discrete(expand = expansion(add = c(0.8, 1.2)))\
+\
+# 3. \uc0\u20445 \u23384 \u22270 \u29255 \
+ggsave("Enrichment_Final_Bubble_Plot.pdf", p, width = 8, height = 5)\
+\
+#############################################\
+##############################################\
+1. \uc0\u35266 \u27979 \u27604 \u20363  (Observed Ratio)\u25351 \u22312 \u24744 \u30340 \u23454 \u39564 \u32452 \u65288 \u22914  edQTL_only\u65289 \u20013 \u65292 \u23646 \u20110 \u32972 \u26223 \u38598 \u65288 \u22914  miRNA_Targets\u65289 \u30340 \u22522 \u22240 \u21344 \u27604 \u12290 $$Ratio_\{observed\} = \\frac\{\\text\{\u20132 \u38598 \u22522 \u22240 \u25968  \} (k)\}\{\\text\{\u23454 \u39564 \u32452 \u24635 \u22522 \u22240 \u25968  \} (n)\}$$2. \u32972 \u26223 \u27604 \u20363 /\u26399 \u26395 \u27604 \u20363  (Expected Ratio)\u25351 \u22312 \u20840 \u22522 \u22240 \u32452 \u32972 \u26223 \u19979 \u65292 \u36825 \u20123 \u32972 \u26223 \u38598 \u22522 \u22240 \u26412 \u36523 \u30340 \u21344 \u27604 \u65288 \u21363 \u22914 \u26524 \u24744 \u38381 \u30528 \u30524 \u38543 \u26426 \u25235 \u21462 \u65292 \u25235 \u21040 \u38774 \u22522 \u22240 \u30340 \u27010 \u29575 \u65289 \u12290 $$Ratio_\{expected\} = \\frac\{\\text\{\u32972 \u26223 \u38598 \u24635 \u22522 \u22240 \u25968  \} (M)\}\{\\text\{\u20840 \u22522 \u22240 \u32452 \u22522 \u22240 \u24635 \u25968  \} (N)\}$$3. \u26368 \u32456 \u20493 \u25968  (Fold Enrichment)$$\\text\{Fold Enrichment\} = \\frac\{Ratio_\{observed\}\}\{Ratio_\{expected\}\}$$\u55357 \u56481  \u20030 \u20010 \u20855 \u20307 \u30340 \u20363 \u23376 \u20551 \u35774 \u24744 \u30340 \u25968 \u25454 \u22914 \u19979 \u65306 \u20840 \u22522 \u22240 \u32452 \u24635 \u22522 \u22240 \u25968  ($N$): 20,000miRNA \u38774 \u22522 \u22240 \u24635 \u25968  ($M$): 2,000\u65288 \u24847 \u21619 \u30528 \u32972 \u26223 \u21344 \u27604 \u20026  10%\u65289 \u24744 \u30340  edQTL \u22522 \u22240 \u38598  ($n$): 100 \u20010 \u20854 \u20013 \u30340 \u20132 \u38598 \u22522 \u22240 \u25968  ($k$): 30 \u20010 \u65288 \u24847 \u21619 \u30528 \u24744 \u30340 \u32452 \u20869 \u21344 \u27604 \u20026  30%\u65289 \u35745 \u31639 \u32467 \u26524 \u65306 \u24744 \u30340 \u27604 \u20363 \u26159  30%\u65292 \u32972 \u26223 \u27604 \u20363 \u26159  10%\u12290 Fold Enrichment = 30% / 10% = 3.0\u12290 \u32467 \u35770 \u65306 \u36825 \u24847 \u21619 \u30528 \u24744 \u30340  edQTL_only \u22522 \u22240 \u38598 \u20013 \u21253 \u21547 \u30340  miRNA \u38774 \u22522 \u22240 \u25968 \u37327 \u26159 \u38543 \u26426 \u26399 \u26395 \u20540 \u30340  3 \u20493 \u12290 \
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

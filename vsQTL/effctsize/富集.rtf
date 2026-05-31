@@ -1,0 +1,444 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww22900\viewh15120\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 library(clusterProfiler)\
+library(org.Hs.eg.db)\
+library(dplyr)\
+library(ggplot2)\
+\
+\
+library(data.table)\
+library(clusterProfiler)\
+library(org.Hs.eg.db)\
+library(ggplot2)\
+\
+# =========================\
+# 1\uc0\u65039 \u8419  \u35835 \u21462  gene\
+# =========================\
+read_set <- function(f) unique(scan(f, what="char"))\
+\
+ed <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/ed.uniq")\
+e  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/eq.uniq")\
+s  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/s.uniq")\
+p  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/p.uniq")\
+\
+gene_list <- list(ed=ed, e=e, s=s, p=p)\
+\
+# \uc0\u36755 \u20986 \u30446 \u24405 \
+out_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/\uc0\u23500 \u38598 /"\
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)\
+\
+# =========================\
+# 2\uc0\u65039 \u8419  \u23500 \u38598 \u20989 \u25968 \
+# =========================\
+run_go <- function(genes, label) \{\
+\
+  cat("Running:", label, "\\n")\
+\
+  # \uc0\u36716 ENTREZ\
+  gene_map <- bitr(\
+    genes,\
+    fromType="SYMBOL",\
+    toType="ENTREZID",\
+    OrgDb=org.Hs.eg.db\
+  )\
+\
+  if (is.null(gene_map) || nrow(gene_map) < 5) return(NULL)\
+\
+  ego <- enrichGO(\
+    gene = unique(gene_map$ENTREZID),\
+    OrgDb = org.Hs.eg.db,\
+    ont = "BP",\
+    pvalueCutoff = 1,\
+    qvalueCutoff = 1,\
+    readable = TRUE\
+  )\
+\
+  dt <- as.data.table(ego)\
+\
+  fwrite(dt, paste0(out_dir, label, "_GO_BP.txt"), sep="\\t")\
+\
+  return(dt)\
+\}\
+\
+# =========================\
+# 3\uc0\u65039 \u8419  \u36305 \u22235 \u32452 \
+# =========================\
+go_res <- lapply(names(gene_list), function(x) \{\
+  run_go(gene_list[[x]], x)\
+\})\
+names(go_res) <- names(gene_list)\
+\
+# =========================\
+# 4\uc0\u65039 \u8419  ratio\u35299 \u26512 \
+# =========================\
+parse_ratio <- function(x) \{\
+  sapply(strsplit(x, "/"), function(y) as.numeric(y[1]) / as.numeric(y[2]))\
+\}\
+\
+# =========================\
+# 5\uc0\u65039 \u8419  \u21462 top4\
+# =========================\
+get_top <- function(dt, label) \{\
+\
+  if (is.null(dt)) return(NULL)\
+\
+  dt[, geneRatio := parse_ratio(GeneRatio)]\
+  dt[, bgRatio   := parse_ratio(BgRatio)]\
+  dt[, FE := geneRatio / bgRatio]\
+\
+  dt <- dt[order(pvalue)][1:4]\
+  dt[, Group := label]\
+\
+  dt[, .(Description, Group, pvalue, FE)]\
+\}\
+\
+top_list <- mapply(get_top, go_res, names(go_res), SIMPLIFY = FALSE)\
+top_all <- rbindlist(top_list)\
+\
+# =========================\
+# 6\uc0\u65039 \u8419  \u26500 \u24314 \u30697 \u38453 \
+# =========================\
+all_pathways <- unique(top_all$Description)\
+\
+plot_dt <- CJ(\
+  Description = all_pathways,\
+  Group = names(gene_list)\
+)\
+\
+plot_dt <- merge(plot_dt, top_all, by=c("Description","Group"), all.x=TRUE)\
+\
+plot_dt[is.na(pvalue), pvalue := 1]\
+plot_dt[is.na(FE), FE := 0]\
+\
+# \uc0\u25490 \u24207 \
+plot_dt[, Description := factor(Description)]\
+\
+# =========================\
+# 7\uc0\u65039 \u8419  \u30011 \u22270 \
+# =========================\
+p <- ggplot(plot_dt, aes(x=Group, y=Description)) +\
+  \
+  geom_point(aes(size=FE, fill=pvalue),\
+             shape=21, color="black") +\
+  \
+  scale_fill_gradient(\
+    low="red",\
+    high="lightgrey",\
+    limits=c(0,0.1)\
+  ) +\
+  \
+  scale_size(range=c(3,10)) +\
+  \
+  theme_classic(base_size=14) +\
+  \
+  labs(\
+    title="GO enrichment comparison (ed vs e vs s vs p)",\
+    x=NULL,\
+    y=NULL\
+  )\
+\
+ggsave(\
+  paste0(out_dir, "GO_top4_compare.pdf"),\
+  p,\
+  width=10,\
+  height=6\
+)\
+\
+\
+\
+\
+\
+\
+\
+library(data.table)\
+library(clusterProfiler)\
+library(org.Hs.eg.db)\
+\
+# =========================\
+# 1\uc0\u65039 \u8419  \u35835  gene\
+# =========================\
+read_set <- function(f) unique(scan(f, what="char"))\
+\
+ed <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/ed.uniq")\
+e  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/eq.uniq")\
+s  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/s.uniq")\
+p  <- read_set("/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/p.uniq")\
+\
+# =========================\
+# 2\uc0\u65039 \u8419  overlap\
+# =========================\
+ed_e <- intersect(ed, e)\
+ed_s <- intersect(ed, s)\
+ed_p <- intersect(ed, p)\
+\
+overlap_list <- list(\
+  ed_e = ed_e,\
+  ed_s = ed_s,\
+  ed_p = ed_p\
+)\
+\
+# =========================\
+# 3\uc0\u65039 \u8419  \u36755 \u20986 \u30446 \u24405 \
+# =========================\
+out_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/\uc0\u23500 \u38598 /overlap/"\
+dir.create(out_dir, showWarnings=FALSE, recursive=TRUE)\
+\
+# =========================\
+# 4\uc0\u65039 \u8419  \u23500 \u38598 \u20989 \u25968 \
+# =========================\
+run_go <- function(genes, label) \{\
+\
+  cat("Running:", label, " N=", length(genes), "\\n")\
+\
+  gene_map <- bitr(\
+    genes,\
+    fromType="SYMBOL",\
+    toType="ENTREZID",\
+    OrgDb=org.Hs.eg.db\
+  )\
+\
+  if (is.null(gene_map) || nrow(gene_map) < 5) \{\
+    cat("Too few genes:", label, "\\n")\
+    return(NULL)\
+  \}\
+\
+  ego <- enrichGO(\
+    gene = unique(gene_map$ENTREZID),\
+    OrgDb = org.Hs.eg.db,\
+    ont = "BP",\
+    pAdjustMethod = "BH",\
+    pvalueCutoff = 1,\
+    qvalueCutoff = 1,\
+    readable = TRUE\
+  )\
+\
+  dt <- as.data.table(ego)\
+\
+  # \uc0\u20445 \u23384 \u23436 \u25972 \u32467 \u26524 \
+  fwrite(dt, paste0(out_dir, label, "_GO.txt"), sep="\\t")\
+\
+  # \uc0\u21462  top5\
+  dt_top <- dt[order(p.adjust)][1:5]\
+\
+  fwrite(dt_top, paste0(out_dir, label, "_GO_top5.txt"), sep="\\t")\
+\
+  return(dt_top)\
+\}\
+\
+# =========================\
+# 5\uc0\u65039 \u8419  \u36816 \u34892 \
+# =========================\
+res_list <- lapply(names(overlap_list), function(x) \{\
+  run_go(overlap_list[[x]], x)\
+\})\
+names(res_list) <- names(overlap_list)\
+\
+cat("All overlap enrichment done.\\n")\
+\
+\
+\
+\
+\
+\
+\
+#####################\uc0\u20197 \u19978 \u20026  \u22235 \u31181 QTL \u29256 \u26412 \
+##############################\uc0\u20197 \u19979 \u20026 \u19977 \u31181 QTL \u29256 \u26412  \
+gene_dir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene"\
+\
+eGene  <- scan(file.path(gene_dir, "col2.uniq"), what = "", quiet = TRUE)\
+edGene <- scan(file.path(gene_dir, "col1.uniq"), what = "", quiet = TRUE)\
+pGene  <- scan(file.path(gene_dir, "col3.uniq"), what = "", quiet = TRUE)\
+\
+length(eGene)\
+length(edGene)\
+length(pGene)\
+\
+gene_universe <- keys(\
+  org.Hs.eg.db,\
+  keytype = "SYMBOL"\
+)\
+\
+length(gene_universe)\
+\
+run_go_bp <- function(genes) \{\
+  enrichGO(\
+    gene          = genes,\
+    universe      = gene_universe,\
+    OrgDb         = org.Hs.eg.db,\
+    keyType       = "SYMBOL",\
+    ont           = "BP",\
+    pAdjustMethod = "BH",\
+    pvalueCutoff  = 0.05,\
+    qvalueCutoff  = 0.2,\
+    readable      = TRUE\
+  )\
+\}\
+\
+\
+ego_eGene  <- run_go_bp(eGene)\
+ego_edGene <- run_go_bp(edGene)\
+ego_pGene  <- run_go_bp(pGene)\
+\
+\
+plot_top5 <- function(ego, title, color) \{\
+  df <- as.data.frame(ego)\
+  df <- df %>% arrange(p.adjust) %>% head(5)\
+\
+  ggplot(df, aes(\
+    x = reorder(Description, -log10(p.adjust)),\
+    y = -log10(p.adjust)\
+  )) +\
+    geom_bar(stat = "identity", fill = color) +\
+    coord_flip() +\
+    theme_bw() +\
+    labs(\
+      title = title,\
+      x = "",\
+      y = "-log10(adj. P)"\
+    )\
+\}\
+\
+p_eGene  <- plot_top5(ego_eGene,  "GO BP enrichment: eGenes",  "#4DBBD5")\
+p_edGene <- plot_top5(ego_edGene, "GO BP enrichment: edGenes", "#E64B35")\
+p_pGene  <- plot_top5(ego_pGene,  "GO BP enrichment: pGenes",  "#00A087")\
+\
+p_eGene\
+p_edGene\
+p_pGene\
+\
+outdir <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/gene/"\
+\
+ggsave(file.path(outdir, "GO_BP_top5_eGene.pdf"),\
+       p_eGene, width = 7, height = 4)\
+\
+ggsave(file.path(outdir, "GO_BP_top5_edGene.pdf"),\
+       p_edGene, width = 7, height = 4)\
+\
+ggsave(file.path(outdir, "GO_BP_top5_pGene.pdf"),\
+       p_pGene, width = 7, height = 4)\
+\
+\
+library(dplyr)\
+\
+get_top5 <- function(ego, group_name) \{\
+  as.data.frame(ego) %>%\
+    arrange(p.adjust) %>%\
+    head(5) %>%\
+    mutate(Group = group_name)\
+\}\
+\
+df_e  <- get_top5(ego_eGene,  "eGene")\
+df_ed <- get_top5(ego_edGene, "edGene")\
+df_p  <- get_top5(ego_pGene,  "pGene")\
+\
+df_all <- bind_rows(df_e, df_ed, df_p)\
+\
+\
+df_all$Significant <- ifelse(df_all$p.adjust < 0.05,\
+                             "FDR < 0.05",\
+                             "FDR \uc0\u8805  0.05")\
+\
+\
+df_all$GeneRatioNum <- as.numeric(\
+  sapply(df_all$GeneRatio, function(x) \{\
+    parts <- strsplit(x, "/")[[1]]\
+    as.numeric(parts[1]) / as.numeric(parts[2])\
+  \})\
+)\
+##############################################\
+library(dplyr)\
+\
+df_all <- df_all %>%\
+  group_by(Group) %>%\
+  arrange(p.adjust) %>%      # 
+\f1 \'c3\'bf\'d7\'e9\'b0\'b4\'cf\'d4\'d6\'f8\'d0\'d4\'c5\'c5\'d0\'f2
+\f0 \
+  mutate(rank_in_group = row_number()) %>%\
+  ungroup()\
+df_all <- df_all %>%\
+  mutate(\
+    y_order = case_when(\
+      Group == "edGene" ~ rank_in_group,\
+      Group == "eGene"  ~ rank_in_group + 5,\
+      Group == "pGene"  ~ rank_in_group + 10\
+    )\
+  )\
+\
+df_all <- df_all %>%\
+  mutate(\
+    y_order = case_when(\
+      Group == "edGene" ~ rank_in_group,\
+      Group == "eGene"  ~ rank_in_group + 5,\
+      Group == "pGene"  ~ rank_in_group + 10\
+    )\
+  )\
+\
+df_all$Description <- factor(\
+  df_all$Description,\
+  levels = df_all %>%\
+    arrange(y_order) %>%\
+    pull(Description)\
+)\
+\
+library(ggplot2)\
+\
+p_dot <- ggplot(\
+  df_all,\
+  aes(\
+    x = Group,\
+    y = Description,\
+    size = GeneRatioNum,\
+    color = -log10(p.adjust)\
+  )\
+) +\
+  geom_point(alpha = 0.9) +\
+  scale_size_continuous(\
+    name = "Gene ratio",\
+    range = c(3, 10)\
+  ) +\
+  scale_color_gradient(\
+    low  = "#FADADD",   # 
+\f1 \'c7\'b3\'c9\'ab\'a3\'a8\'b2\'bb\'cc\'ab\'cf\'d4\'d6\'f8\'a3\'a9
+\f0 \
+    high = "#B2182B",   # 
+\f1 \'c9\'ee\'c9\'ab\'a3\'a8\'b7\'c7\'b3\'a3\'cf\'d4\'d6\'f8\'a3\'a9
+\f0 \
+    name = expression(-log[10]~"(adj. P)")\
+  ) +\
+  theme_bw() +\
+  theme(\
+    axis.text.y  = element_text(size = 11),\
+    axis.text.x  = element_text(size = 12),\
+    axis.title.x = element_text(size = 13),\
+    plot.title   = element_text(size = 15, face = "bold"),\
+    legend.text  = element_text(size = 11),\
+    legend.title = element_text(size = 12)\
+  ) +\
+  labs(\
+    title = "GO BP enrichment of eGene, edGene and pGene",\
+    x = "",\
+    y = "GO Biological Process"\
+  )\
+\
+print(p_dot)\
+\
+\
+ggsave(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/result/GO_BP_dotplot_3groups_gradient.pdf",\
+  p_dot,\
+  width = 8,\
+  height = 5\
+)\
+\
+########\
+\
+\
+\
+\
+\
+}
