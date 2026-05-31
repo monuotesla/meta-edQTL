@@ -1,0 +1,37 @@
+##分别用genebody和TSS的conditional eQTL与AD和BIP的GWAS进行共定位，寻找PPH4>0.75的causal gene
+#eQTL pathway: /vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/genebody/eqtl.conditional.chrall.sig
+                         /vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/TSS/eqtl.conditional.chrall.sig
+
+
+#GWAS pathway: /vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/unique.eQTL/gwas/AD_sumstats_Jansenetal_2019sept.summary
+                           /vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/unique.eQTL/gwas/pgc-bip2021-all.vcf.summary
+
+#存放结果目录： /vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/unique.eQTL/coloc/AD BIP
+#code for standard coloc
+library(snpStats)
+library(BiocManager)
+library(coloc)
+library(reshape2)
+eqtl <- read.table(file="/vg_sklmgdata_hw_01/data/chan/cis-region.analysis/eQTLmapping/output-nolm/genebody/eqtl.conditional.chrall.sig", header=F, as.is=T); head(eqtl)
+eqtl$eSNP <- eqtl$V8
+eqtl$p.value <- eqtl$V18
+eqtl$eGene <- eqtl$V1
+gwas <- read.table(file="/mnt/NAS-PD/shareData/PGC/2021PGC3_SCZ.sum.v3chan", header=T); head(gwas)
+#gwas$SNP <- paste(gwas$CHR,gwas$BP,gwas$A1,gwas$A2,sep="_")
+gwas$maf <- ifelse(gwas$freq>0.5,1-gwas$freq,gwas$freq)
+input <- merge(eqtl, gwas, by.x = "eSNP",by.y ="CHR_BP_A1_A2", all=FALSE, suffixes=c("_eqtl","gwas"))
+head(input)
+dim(input)
+res0 <- matrix(NA,ncol=6,nrow=length(unique(input$eGene))); res0 <- as.data.frame(res0)
+rownames(res0) <- unique(input$eGene)
+for (i in (unique(input$eGene)))
+{
+result <- coloc.abf(dataset1=list(pvalues=input[input$eGene==i,]$P, type="cc",s=0.23, N=320404),dataset2=list(pvalues=input[input$eGene==i,]$p.value, type="quant", N=397), MAF=input[input$eGene==i,]$maf)
+res0[i,] <- as.numeric(result$summary)
+}##s=0.23, N=320404; s: sample size of case/total sample size N=total sample size
+colnames(res0)<-c("nsnps", "PP.H0.abf", "PP.H1.abf", "PP.H2.abf", "PP.H3.abf", "PP.H4.abf")
+write.table(res0,file="conditionaleqtl.pp.coloc.result",sep="\t",row.names=T,quote=F,col.names=NA)
+#write.table(res0,file="conditionaleqtl.pp.coloc.resultfilterd",sep="\t",row.names=T,quote=F,col.names=NA)
+
+
+数据结果中包含两个子结果，一个是summary，主要描述了SNPs数量，以及H0(无因果变量)、H1(仅为性状1的因果变量)、H2(仅为性状2的因果变量)、H3(两个不同的因果变量)和H4(一个共同的因果变量)的后验概率。另一个结果是result，主要描述的是每一个SNP位点的贝叶斯算子以及中间计算过程.

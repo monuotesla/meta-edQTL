@@ -1,0 +1,561 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;\red254\green209\blue100;\red252\green39\blue18;\red252\green118\blue111;
+}
+{\*\expandedcolortbl;;\cssrgb\c99987\c84779\c46527;\cssrgb\c100000\c25271\c7591;\cssrgb\c100000\c55025\c50890;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww23180\viewh14480\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 \
+/gpfs/hpc/home/chenchao/mayinuo/miniconda3/envs/r_nuo/bin/R\
+\
+library(snpStats)\
+library(BiocManager)\
+library(coloc)\
+library(reshape2)\
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/SCZ_EAS")\
+\
+eqtl <- read.table(file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt", as.is=T);\
+head(eqtl)\
+eqtl$eSNP <- eqtl$V2\
+eqtl$p.value <- eqtl$V11\
+eqtl$eGene <- eqtl$V1      #\uc0\u34920 \u22411 \
+\
+gwas <- read.table(file="/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc", header=T); head(gwas)\
+gwas$maf <- ifelse(gwas$af>0.5,1-gwas$af,gwas$af)\
+\
+input <- merge(eqtl, gwas, by.x = "eSNP",by.y ="SNP", all=FALSE, suffixes=c("_eqtl","gwas"))\
+head(input)\
+dim(input)\
+\
+#508  33\
+#41001    33  \uc0\u65288 \u36824 \u26159 \u24456 \u23569 \u65292 82235    41001  \u65307   conditonal  194736   183674 \u65289 \
+res0 <- matrix(NA,ncol=6,nrow=length(unique(input$eGene))); res0 <- as.data.frame(res0)\
+rownames(res0) <- unique(input$eGene)\
+\
+\
+for (i in unique(input$eGene)) \{\
+    \
+    # \uc0\u25552 \u21462 \u24403 \u21069  eGene \u30340 \u25968 \u25454 \
+    current_data <- input[input$eGene == i, ]\
+\
+    result <- coloc.abf(\
+        dataset1 = list(\
+            pvalues = current_data$pval, \
+            type = "cc", \
+            s = 0.39, \
+            N = 58140,\
+            # \uc0\u10024  \u20462 \u27491  1: \u28155 \u21152  snp \u20803 \u32032  (GWAS/Dataset1) \u10024 \
+            snp = current_data$ eSNP \
+        ),\
+        dataset2 = list(\
+            pvalues = current_data$p.value, \
+            type = "quant", \
+            N = 975, # \uc0\u24744 \u30340 \u20195 \u30721 \u20013 \u26159  975\u65292 \u20294 \u24744 \u30340  head(input) V9\u21015 \u26159 429/975\u12290 \u35831 \u30830 \u35748  N \u20540 \u12290 \
+            # \uc0\u10024  \u20462 \u27491  2: \u28155 \u21152  snp \u20803 \u32032  (eQTL/Dataset2) \u10024 \
+            snp = current_data$eSNP\
+        ),\
+        MAF = current_data$maf\
+    )\
+    \
+    res0[i, ] <- as.numeric(result$summary)\
+\}\
+\
+#####\
+\
+nrow(res0)  #97   2172  6648   1274  2171      1037 \
+colnames(res0)<-c("nsnps", "PP.H0.abf", "PP.H1.abf", "PP.H2.abf", "PP.H3.abf", "PP.H4.abf")\
+\
+write.table(res0,file="meta_ShjeadCZ.pp.coloc.result",sep="\\t",row.names=T,quote=F,col.names=NA)\
+\
+res0$PP.H4.abf <- as.numeric(as.character(res0$PP.H4.abf))\
+sig_cutoff <- 0.75\
+sig_summary <- res0[which(res0$PP.H4.abf > sig_cutoff), ]\
+write.table(sig_summary, file="meta_ShjeadCZ.pp.coloc.sig_075.summary.txt", \
+            sep="\\t", quote=F, row.names=T, col.names=NA)\
+\
+##\uc0\u19981 \u23545 \u65292 \u19968 \u20010 \u20449 \u21495 \u37117 \u27809 \
+res0[order(res0[,"PP.H4.abf"], decreasing = TRUE), ][1:20, ]\
+\
+
+\fs48 \cf2 #\uc0\u35774 \u32622 \u20010 \u21306 \u22495 \u65288 \u27604 \u22914 \u35828  gwas \u30340 tag snp \u19978 \u19979 \u19968 \u20010 \u21306 \u22495 \u21644  \u25105 edqtl \u30340 snp \u20849 \u23450 \u20301 \u23601 \u34892 \u65289 \
+#\uc0\u21487 \u20197 \u21442 \u32771   \u32874 \u22992 \u33050 \u26412 \u65306  \
+\
+/gpfs/hpc/home/chenchao/hanc/project/2023project_develop_eQTL/00script/colocalization/02_get_sentinel_variants.sh\
+\
+####################################
+\fs28 \cf0 \
+#\uc0\u35774 \u32622 \u21306 \u22495 \u65306 \
+#gwas_sig <- gwas[gwas$pval < 5e-8, ]\
+gwas_sig <- gwas[gwas$pval < 5e-6, ]\
+gwas_lead <- gwas_sig[order(gwas_sig$pval), ]\
+gwas_lead <- gwas_lead[!duplicated(paste(gwas_lead$chr, gwas_lead$pos)), ]\
+\
+\cf3 window <- 500000\cf0 \
+tmp <- do.call(rbind, strsplit(eqtl$eSNP, "_"))\
+eqtl$chr <- as.integer(tmp[, 1])\
+eqtl$pos <- as.integer(tmp[, 2])\
+\
+library(coloc)\
+\
+results <- list()\
+\
+library(parallel)\
+\
+\
+window <- 500000\
+\
+run_one_lead <- function(k) \{\
+\
+    lead <- gwas_lead[k, ]\
+\
+    chr_k <- lead$chr\
+    pos_k <- lead$pos\
+    lead_id <- lead$SNP\
+\
+    region_start <- pos_k - window\
+    region_end   <- pos_k + window\
+\
+    gwas_reg <- gwas[\
+        gwas$chr == chr_k &\
+        gwas$pos >= region_start &\
+        gwas$pos <= region_end,\
+    ]\
+\
+    eqtl_reg <- eqtl[\
+        eqtl$chr == chr_k &\
+        eqtl$pos >= region_start &\
+        eqtl$pos <= region_end,\
+    ]\
+\
+    snps_common <- intersect(gwas_reg$SNP, eqtl_reg$eSNP)\
+\
+    if (length(snps_common) < 2) return(NULL)\
+\
+    gwas_use <- gwas_reg[match(snps_common, gwas_reg$SNP), ]\
+    eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+\
+    coloc_res <- coloc.abf(\
+        dataset1 = list(\
+            pvalues = gwas_use$pval,\
+            type = "cc",\
+            s = 0.39,\
+            N = 58140,\
+            snp = snps_common\
+        ),\
+        dataset2 = list(\
+            pvalues = eqtl_use$p.value,\
+            type = "quant",\
+            N = eqtl_use$V9[1],\
+            snp = snps_common\
+        ),\
+        MAF = gwas_use$maf\
+    )\
+\
+    data.frame(\
+        lead_snp = lead_id,\
+        chr = chr_k,\
+        pos = pos_k,\
+        nsnps = coloc_res$summary["nsnps"],\
+        PP.H0 = coloc_res$summary["PP.H0.abf"],\
+        PP.H1 = coloc_res$summary["PP.H1.abf"],\
+        PP.H2 = coloc_res$summary["PP.H2.abf"],\
+        PP.H3 = coloc_res$summary["PP.H3.abf"],\
+        PP.H4 = coloc_res$summary["PP.H4.abf"]\
+    )\
+\}\
+\
+# \uc0\u26681 \u25454 \u33410 \u28857 \u24773 \u20917 \u36873 \u26680 \u24515 \u25968 \
+ncore <- 8\
+\
+results_list <- mclapply(\
+    seq_len(nrow(gwas_lead)),\
+    run_one_lead,\
+    mc.cores = ncore\
+)\
+\
+results <- do.call(rbind, results_list)\
+\
+#\uc0\u20294 \u36825 \u31181 \u29702 \u35770 \u19978 \u26159 \u19968 \u20010 \u21306 \u22495 \u21644  \u26576 \u20123 edite \u30340 edqtl \u20849 \u23450 \u20301 \u65292 \u19981 \u30830 \u23450 \u20855 \u20307 \u26159 \u21738 \u20010 \u20135 \u29983 \u30340 \u25928 \u24212 \
+\
+nsnp_vec\
+   0   45 \
+1691   25 \
+1700\uc0\u22810 \u20010  lead snp \u21482 \u26377 25\u20010 \u21306 \u22495 \u20869 \u26377 edsnp \u65288 45\u20010 \u65289 \
+\
+> table(nsnp_vec)\
+nsnp_vec\
+   0    2    3    6   31   34   36   45   63  170  321 \
+4296    3   12    2    1   27    2   44    2    1    1 \
+\
+#########################################\
+library(parallel) # \uc0\u30830 \u20445 \u24050 \u32463 \u21152 \u36733  parallel \u21253 \
+\
+# -----------------------------------------------------\
+# 1. \uc0\u23450 \u20041 \u26680 \u24515 \u21151 \u33021 \u20989 \u25968  (\u35745 \u31639 \u21333 \u20010 \u31383 \u21475 \u20869 \u30340 \u20849 \u21516  SNP \u25968 \u37327 )\
+# -----------------------------------------------------\
+# \uc0\u27880 \u24847 \u65306 window, gwas, eqtl, gwas_lead \u24517 \u39035 \u22312 \u20840 \u23616 \u29615 \u22659 \u20013 \u21487 \u35775 \u38382 \
+count_common_snps <- function(k) \{\
+    \
+    # \uc0\u33719 \u21462 \u24403 \u21069 \u23548 \u21521 \u20301 \u28857 \u20449 \u24687 \
+    lead <- gwas_lead[k, ]\
+    \
+    # \uc0\u23450 \u20041 \u21306 \u22495 \u36793 \u30028 \
+    region_start <- lead$pos - window\
+    region_end <- lead$pos + window\
+    \
+    # -------------------------\
+    # GWAS: \uc0\u21306 \u22495 \u20869  SNP \u36807 \u28388 \
+    # -------------------------\
+    gwas_reg <- gwas[\
+        gwas$chr == lead$chr &\
+        gwas$pos >= region_start &\
+        gwas$pos <= region_end,\
+    ]\
+    \
+    # -------------------------\
+    # eQTL: \uc0\u21306 \u22495 \u20869  SNP \u36807 \u28388 \
+    # -------------------------\
+    eqtl_reg <- eqtl[\
+        eqtl$chr == lead$chr &\
+        eqtl$pos >= region_start &\
+        eqtl$pos <= region_end,\
+    ]\
+    \
+    # \uc0\u35745 \u31639 \u20849 \u21516  SNP \u25968 \u37327 \
+    return(length(intersect(gwas_reg$SNP, eqtl_reg$eSNP)))\
+\}\
+\
+# -----------------------------------------------------\
+# 2. \uc0\u25191 \u34892 \u24182 \u34892 \u35745 \u31639 \
+# -----------------------------------------------------\
+# \uc0\u35774 \u32622 \u26680 \u24515 \u25968  (\u26681 \u25454 \u24744 \u30340  HPC \u36164 \u28304 \u35843 \u25972 )\
+ncore <- 8 \
+\
+# \uc0\u20351 \u29992  mclapply \u24182 \u34892 \u35745 \u31639  nsnp \u21521 \u37327 \
+nsnp_list <- mclapply(\
+    seq_len(nrow(gwas_lead)), # \uc0\u36941 \u21382  gwas_lead \u30340 \u25152 \u26377 \u32034 \u24341 \
+    count_common_snps,       # \uc0\u24212 \u29992 \u21040 \u27599 \u20010 \u32034 \u24341 \u19978 \u30340 \u20989 \u25968 \
+    mc.cores = ncore         # \uc0\u25351 \u23450 \u20351 \u29992 \u30340 \u26680 \u24515 \u25968 \
+)\
+\
+# -----------------------------------------------------\
+# 3. \uc0\u32467 \u26524 \u22788 \u29702 \u21644 \u36755 \u20986 \
+# -----------------------------------------------------\
+# \uc0\u23558  mclapply \u36820 \u22238 \u30340  list \u36716 \u25442 \u20026 \u21521 \u37327 \
+nsnp_vec <- unlist(nsnp_list)\
+\
+# \uc0\u25171 \u21360 \u32479 \u35745 \u25688 \u35201 \
+print("--- \uc0\u20849 \u21516  SNP \u25968 \u37327  (nsnp_vec) \u32479 \u35745 \u25688 \u35201  ---")\
+summary(nsnp_vec)\
+\
+# \uc0\u25171 \u21360  QC \u38408 \u20540  (>= 10) \u32479 \u35745 \
+print("--- \uc0\u20849 \u21516  SNP \u25968 \u37327  >= 10 \u30340 \u22522 \u22240 \u24231 \u32479 \u35745  ---")\
+table(nsnp_vec >= 10)\
+\
+##########################\
+\
+\
+\
+###########################\
+#\uc0\u21478 \u19968 \u31181 \u65292 \u20197 edsite   \u20026 \u28857 \u35774 \u32622  window \
+\
+tmp_site <- do.call(rbind, strsplit(eqtl$edsite, "_"))\
+eqtl$site_chr <- as.integer(tmp_site[, 1])\
+eqtl$site_pos <- as.integer(tmp_site[, 2])\
+\
+## -------------------------\
+## 2. \uc0\u35299 \u26512  eSNP \u8594  chr / pos\u65288 \u21487 \u36873 \u65292 \u20294 \u24314 \u35758 \u65289 \
+## -------------------------\
+tmp_snp <- do.call(rbind, strsplit(eqtl$eSNP, "_"))\
+eqtl$snp_chr <- as.integer(tmp_snp[, 1])\
+eqtl$snp_pos <- as.integer(tmp_snp[, 2])\
+\
+\
+window <- 500000   # \'b1500kb\
+\
+run_one_edsite <- function(site_id) \{\
+\
+    ## -------------------------\
+    ## 1. \uc0\u21462 \u35813  edsite \u30340 \u25152 \u26377  edQTL SNP\
+    ## -------------------------\
+    eqtl_site <- eqtl[eqtl$\cf4 edsite\cf0  == site_id, ]\
+\
+    #if (nrow(eqtl_site) < 10) return(NULL)\
+\
+    chr_k <- eqtl_site$site_chr[1]\
+    pos_k <- eqtl_site$site_pos[1]\
+\
+    region_start <- pos_k - window\
+    region_end   <- pos_k + window\
+\
+    ## -------------------------\
+    ## 2. GWAS\uc0\u65306 \u21462  edsite \'b1window\
+    ## -------------------------\
+    gwas_reg <- gwas[\
+        gwas$chr == chr_k &\
+        gwas$pos >= region_start &\
+        gwas$pos <= region_end,\
+    ]\
+\
+    if (nrow(gwas_reg) < 5) return(NULL)\
+\
+    ## -------------------------\
+    ## 3. SNP \uc0\u20132 \u38598 \u65288 \u38750 \u24120 \u20851 \u38190 \u65289 \
+    ## -------------------------\
+    snps_common <- intersect(gwas_reg$SNP, eqtl_site$eSNP)\
+\
+   # if (length(snps_common) < 10) return(NULL)\
+\
+    ## \uc0\u20445 \u35777 \u39034 \u24207 \u23436 \u20840 \u19968 \u33268 \
+    gwas_use <- gwas_reg[match(snps_common, gwas_reg$SNP), ]\
+    eqtl_use <- eqtl_site[match(snps_common, eqtl_site$eSNP), ]\
+\
+    ## -------------------------\
+    ## 4. coloc\
+    ## -------------------------\
+    coloc_res <- coloc.abf(\
+        dataset1 = list(\
+            pvalues = gwas_use$pval,\
+            type = "cc",\
+            s = 0.39,\
+            N = 58140,\
+            snp = snps_common\
+        ),\
+        dataset2 = list(\
+            pvalues = eqtl_use$p.value,\
+            type = "quant",\
+            N = eqtl_use$V9[1],   # meta N \uc0\u21487 \u21464 \u65292 \u21512 \u27861 \
+            snp = snps_common\
+        ),\
+        MAF = gwas_use$maf\
+    )\
+\
+    ## -------------------------\
+    ## 5. \uc0\u36820 \u22238  locus-level \u32467 \u26524 \
+    ## -------------------------\
+    data.frame(\
+        edsite = site_id,\
+        chr = chr_k,\
+        pos = pos_k,\
+        nsnps = coloc_res$summary["nsnps"],\
+        PP.H0 = coloc_res$summary["PP.H0.abf"],\
+        PP.H1 = coloc_res$summary["PP.H1.abf"],\
+        PP.H2 = coloc_res$summary["PP.H2.abf"],\
+        PP.H3 = coloc_res$summary["PP.H3.abf"],\
+        PP.H4 = coloc_res$summary["PP.H4.abf"]\
+    )\
+\}\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+######################################\
+\uc0\u21516 \u26102 \u30475 \u19968 \u19979 \u65292 \u22914 \u26524 \u21482 overlap \u20301 \u28857 \u65292 \u26377 \u22810 \u23569  overlap\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt\
+/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+######################################\
+\
+\
+######\
+\
+#gwas_file="/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc"\
+gwas_file="/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/PD.GWAS_discovery.summaryIDmaf"\
+gwas_sample_size=4450\
+gwas_cases=2478\
+#gwas_cases=22778\
+#gwas_sample_size=58140 \
+#s=0.3917\
+\
+\
+# List of eQTL datasets and their respective sample sizes\
+eqtl_files=("/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt")\
+\
+#"/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/coloc/eqtl/eqtl.nominalhg19.aged.chrall.sig"\
+\
+\
+eqtl_sample_sizes=(975)  # Example sample sizes\
+\
+# Create output directory\
+output_dir="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/PD_EAS/coloc_results"\
+mkdir -p $output_dir\
+chmod u+w $output_dir \
+# Function for coloc analysis\
+coloc_analysis() \{\
+  eqtl_file=$1\
+  eqtl_sample_size=$2\
+  gwas_file=$3\
+  gwas_sample_size=$4\
+  gwas_cases=$5\
+  tissue=$(basename $eqtl_file)\
+\
+  Rscript - <<EOF\
+  library(coloc)\
+  library(data.table)\
+  eqtl <- fread("$\{eqtl_file\}", head=F)\
+  gwas <- fread("$\{gwas_file\}", head=F)\
+  # Rename columns for easier access\
+  gwas\\$rs_id <- gwas\\$V10\
+  gwas\\$variant_id <- gwas\\$V10\
+  gwas\\$pval_nominal <- gwas\\$V8\
+  gwas\\$varbeta <- gwas\\$V7\
+  gwas\\$maf <- ifelse(gwas\\$V11 > 0.5, 1 - gwas\\$V11, gwas\\$V11)\
+  print(head(gwas\\$maf))\
+  eqtl\\$variant_id <- eqtl\\$V2      #1_741579_T_C     
+\f1 \'a3\'bb
+\f0 V2      1_10451078\
+  eqtl\\$gene_id <- eqtl\\$V1		#ENSG00000241860
+\f1 \'a3\'bb
+\f0 V1 \
+  eqtl\\$pval_nominal <- eqtl\\$V11		# 7.18657e-05 
+\f1 \'a3\'bb
+\f0  V11  p  0.001054   
+\f1 \'bb\'f2
+\f0  V17 q\
+ # eqtl\\$beta <- eqtl\\$V14				# 0.40913     -0.322648     \
+ #eqtl\\$varbeta <- eqtl\\$V15			#0.098310    0.101653  \
+  eqtl\\$rs_id <- eqtl\\$variant_id			#1_741579_T_C    \
+  print(head(eqtl))\
+  # Merge datasets by SNPs\
+  input <- merge(eqtl, gwas, by="rs_id", all=FALSE, suffixes=c("_eqtl", "_gwas"))\
+  print(head(input))\
+  # Remove duplicate SNPs\
+  input <- input[!duplicated(input\\$rs_id),]\
+  print(head(input))\
+  res0 <- matrix(NA, ncol=6, nrow=length(unique(input\\$gene_id)))\
+  res0 <- as.data.frame(res0)\
+  rownames(res0) <- unique(input\\$gene_id)\
+\
+  for (i in unique(input\\$gene_id)) \{\
+    result <- coloc.abf(dataset1 = list(snp = input[input\\$gene_id == i,]\\$variant_id_gwas,\
+                                    pvalues = input[input\\$gene_id == i,]\\$pval_nominal_gwas,\
+                                    type = "cc",\
+                                    N = $\{gwas_sample_size\},\
+                                    s = $\{gwas_cases\} / $\{gwas_sample_size\}),\
+                    dataset2 = list(snp = input[input\\$gene_id == i,]\\$variant_id_eqtl,\
+                                    pvalues = input[input\\$gene_id == i,]\\$pval_nominal_eqtl,\
+                                    type = "quant",\
+                                    N = $\{eqtl_sample_size\}),\
+                    MAF = input[input\\$gene_id == i,]\\$maf)\
+  res0[i, ] <- as.numeric(result\\$summary)\
+  \}\
+  colnames(res0) <- c("nsnps", "PP.H0.abf", "PP.H1.abf", "PP.H2.abf", "PP.H3.abf", "PP.H4.abf")\
+  output_filepath <- paste0("$\{output_dir\}/", "$\{tissue\}", ".pp.coloc")\
+  write.table(res0, file=output_filepath, sep="\\t", row.names=T, quote=F, col.names=NA)\
+EOF\
+\}\
+\
+# Export the function to use in parallel\
+export -f coloc_analysis\
+\
+# Run coloc analysis in paral\
+parallel --tmpdir /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/tmp coloc_analysis ::: "$\{eqtl_files[@]\}" ::: "$\{eqtl_sample_sizes[@]\}" ::: "$\{gwas_file\}" ::: "$\{gwas_sample_size\}" ::: "$\{gwas_cases\}"\
+\
+echo "Script completed at: $(date '+%Y-%m-%d %H:%M:%S')"\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs24 \cf0 \
+#################################\
+\
+echo -n "\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u | wc -l && echo -n " | \u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nominal.chrall.qvalue | sort -u | wc -l && echo -n " | \u20849 \u20139  (Overlap) \u25968 \u37327 : " && comm -12 <(awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u) <(awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nominal.chrall.qvalue | sort -u) | wc -l\
+\
+\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : 31999\
+ | \uc0\u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : \
+520112\
+ | \uc0\u20849 \u20139  (Overlap) \u25968 \u37327 : 119\
+\
+echo -n "\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u | wc -l && echo -n " | \u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina | sort -u | wc -l && echo -n " | \u20849 \u20139  (Overlap) \u25968 \u37327 : " && comm -12 <(awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u) <(awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina | sort -u) | wc -l\
+\
+\
+\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : 31999\
+ | \uc0\u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : 137540\
+ | \uc0\u20849 \u20139  (Overlap) \u25968 \u37327 : 9952\
+\
+echo -n "\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u | wc -l && echo -n " | \u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u | wc -l && echo -n " | \u20849 \u20139  (Overlap) \u25968 \u37327 : " && comm -12 <(awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u) <(awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u) | wc -l\
+\
+\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : 31999\
+ | \uc0\u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : 10176021\
+ | \uc0\u20849 \u20139  (Overlap) \u25968 \u37327 : 198\
+\
+echo -n "\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina | sort -u | wc -l && echo -n " | \u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u | wc -l && echo -n " | \u20849 \u20139  (Overlap) \u25968 \u37327 : " && comm -12 <(awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina | sort -u) <(awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u) | wc -l\
+\
+\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : 137540\
+ | \uc0\u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : 10176021\
+ | \uc0\u20849 \u20139  (Overlap) \u25968 \u37327 : 72060\
+\
+\
+echo -n "\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nominal.chrall.qvalue | sort -u | wc -l && echo -n " | \u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : " && awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u | wc -l && echo -n " | \u20849 \u20139  (Overlap) \u25968 \u37327 : " && comm -12 <(awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nominal.chrall.qvalue | sort -u) <(awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u) | wc -l\
+\uc0\u25991 \u20214 1\u21807 \u19968 \u20540 \u25968 \u37327 : \
+520112\
+ | \uc0\u25991 \u20214 2\u21807 \u19968 \u20540 \u25968 \u37327 : 10176021\
+ | \uc0\u20849 \u20139  (Overlap) \u25968 \u37327 : 2174\
+######\
+\uc0\u29983 \u25104 \u25991 \u20214 \
+# \uc0\u27493 \u39588  1: \u25552 \u21462 \u24182 \u21435 \u37325 \u22235 \u20010 \u21015 \u34920 \u65292 \u24182 \u20445 \u23384 \u21040 \u20020 \u26102 \u25991 \u20214 \
+# \uc0\u21015 \u34920  A: \u25991 \u20214 1 (\u31532 2\u21015 )\
+awk '\{print $2\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/hg19/all_significant_classified_hg19.txt | sort -u > col_A.tmp\
+\
+# \uc0\u21015 \u34920  B: \u25991 \u20214 2 (\u31532 8\u21015 )\
+awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina | sort -u > col_B.tmp\
+\
+# \uc0\u21015 \u34920  C: \u25991 \u20214 3 (\u26368 \u21518 \u19968 \u21015 )\
+awk '\{print $NF\}' /gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/05intergration/GWAS/SCZ/cleaned_SCZgwas_format.coloc | sort -u > col_C.tmp\
+\
+# \uc0\u21015 \u34920  D: \u25991 \u20214 4 (\u31532 8\u21015 )\
+awk '\{print $8\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nominal.chrall.qvalue | sort -u > col_D.tmp\
+\
+# \uc0\u27493 \u39588  2: \u21512 \u24182 \u22235 \u20010 \u20020 \u26102 \u25991 \u20214 \u20026 \u22235 \u21015  (\u20351 \u29992  'paste')\
+# \uc0\u27880 \u24847 \u65306 paste \u21629 \u20196 \u20250 \u25353 \u34892 \u21512 \u24182 \u65292 \u22914 \u26524 \u22235 \u20010 \u21015 \u34920 \u38271 \u24230 \u19981 \u19968 \u33268 \u65292 \u20250 \u22312 \u36739 \u30701 \u30340 \u21015 \u34920 \u26411 \u23614 \u22635 \u20805 \u31354 \u30333 \
+paste col_A.tmp col_B.tmp col_C.tmp col_D.tmp > unique_ids_comparison.txt\
+\
+# \uc0\u27493 \u39588  3: \u28165 \u29702 \u20020 \u26102 \u25991 \u20214 \
+rm col_A.tmp col_B.tmp col_C.tmp col_D.tmp\
+\
+echo "\uc0\u9989  \u22235 \u20010 \u21807 \u19968  ID \u21015 \u34920 \u24050 \u20445 \u23384 \u33267 \u25991 \u20214 : unique_ids_comparison.txt"\
+\
+\
+############\
+ \uc0\u27604 \u23545   ALLe1 alle2 \u30340 \u39034 \u24207 \u26159 \u21542 \u26377 \u38382 \u39064 \
+############\
+\uc0\u24050 \u32463 \u27604 \u23545 \u36807 \u65292 meta \u20998 \u26512 \u30340 \u36755 \u20837 \u25991 \u20214 \u20102 \u65292 EAS \u21644 EUR \u26159 \u19968 \u26679 \u30340 \u65292 \u27809 \u26377 \u38382 \u39064 \u30340 \u65292 \u29616 \u22312 \u27604 \u23545 EAS \u21644 \u32467 \u26524 \u25991 \u20214 \
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/edqtl_nominal_EAS_final_cols.txt\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/metal_results_hg38/all_significant_classified.txt\
+\
+\uc0\u26377 \u38382 \u39064 \u65292 \u30452 \u25509 \u26367 \u25442 \u21543 \u65292 \u22238 \u21040  meta \u20998 \u26512 \u33050 \u26412 \
+\
+\
+\
+}

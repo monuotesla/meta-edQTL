@@ -1,0 +1,2066 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;\f2\froman\fcharset0 Times-Roman;
+\f3\fnil\fcharset0 .AppleSystemUIFontMonospaced-Regular;\f4\fnil\fcharset134 STSongti-SC-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
+\f6\fnil\fcharset0 .SFNS-Regular;\f7\fswiss\fcharset0 Helvetica-Bold;\f8\fnil\fcharset134 PingFangSC-Semibold;
+\f9\fnil\fcharset0 HelveticaNeue-Bold;\f10\fnil\fcharset0 AppleColorEmoji;\f11\fnil\fcharset0 LucidaGrande;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red181\green0\blue19;\red252\green112\blue56;
+\red0\green0\blue0;\red252\green73\blue64;\red255\green250\blue131;\red168\green24\blue75;\red243\green235\blue10;
+\red14\green14\blue14;\red221\green32\blue103;\red18\green139\blue39;\red255\green255\blue255;\red83\green83\blue83;
+\red38\green38\blue38;\red86\green103\blue189;\red155\green44\blue3;\red151\green85\blue4;\red153\green102\blue51;
+\red100\green70\blue2;\red174\green0\blue240;\red230\green87\blue141;\red201\green113\blue6;\red253\green183\blue155;
+}
+{\*\expandedcolortbl;;\csgray\c0;\cssrgb\c76863\c10196\c8627;\cssrgb\c100000\c52407\c27938;
+\cssrgb\c0\c0\c0;\cssrgb\c100000\c38374\c31601;\cssrgb\c100000\c97501\c58325;\cssrgb\c72439\c17643\c36556;\cssrgb\c96264\c92423\c0;
+\cssrgb\c6700\c6700\c6700;\cssrgb\c90234\c23206\c47866;\cssrgb\c0\c60000\c20000;\cssrgb\c100000\c100000\c100000;\cssrgb\c40000\c40000\c40000;
+\cssrgb\c20000\c20000\c20000;\cssrgb\c41176\c49412\c78824;\cssrgb\c67803\c24280\c0;\cssrgb\c66183\c40833\c0;\cssrgb\c66800\c47512\c25860;
+\cssrgb\c47026\c34258\c0;\cssrgb\c74609\c21796\c95404;\cssrgb\c93000\c44193\c62103;\cssrgb\c83336\c51866\c0;\cssrgb\c100000\c77015\c67035;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww23560\viewh15820\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 \
+\
+\
+\
+mkdir gene\
+\
+#
+\f1 \'cc\'e1\'c8\'a1\'cb\'f9\'d0\'e8\'c1\'d0
+\f0 \
+awk 'BEGIN \{OFS="\\t"; print "Phenotype", "SNP", "EffectSize", "SignificanceFlag"\} \{print $1, $8, $14, $16\}' /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/eqtl.nopermute.all.signicifant> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt\
+\
+\
+#
+\f1 \'c9\'b8\'d1\'a1\'d0\'d0
+\f0 \
+#!/bin/bash\
+\
+# --- 1. 
+\f1 \'c9\'e8\'d6\'c3\'ce\'c4\'bc\'fe\'ba\'cd\'c2\'b7\'be\'b6
+\f0  ---\
+INPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt"\
+# 
+\f1 \'bd\'ab\'d7\'ee\'d6\'d5\'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'d4\'da\'cd\'ac\'d2\'bb\'b8\'f6\'c4\'bf\'c2\'bc\'cf\'c2
+\f0 \
+OUTPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_filtered.txt"\
+\
+# 
+\f1 \'bc\'ec\'b2\'e9\'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe\'ca\'c7\'b7\'f1\'b4\'e6\'d4\'da
+\f0 \
+if [ ! -f "$INPUT_FILE" ]; then\
+    echo "
+\f1 \'b4\'ed\'ce\'f3
+\f0 : 
+\f1 \'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe
+\f0  '$INPUT_FILE' 
+\f1 \'b2\'bb\'b4\'e6\'d4\'da
+\f0 !"\
+    exit 1\
+fi\
+\
+echo "
+\f1 \'bf\'aa\'ca\'bc\'b4\'a6\'c0\'ed\'ce\'c4\'bc\'fe
+\f0 : $INPUT_FILE"\
+\
+# --- 2. 
+\f1 \'b4\'a6\'c0\'ed\'b1\'ed\'cd\'b7\'b2\'a2\'bc\'c6\'cb\'e3
+\f0 10%
+\f1 \'b5\'c4\'d0\'d0\'ca\'fd
+\f0  ---\
+# 
+\f1 \'cc\'e1\'c8\'a1\'b1\'ed\'cd\'b7
+\f0 \
+HEADER=$(head -n 1 "$INPUT_FILE")\
+# 
+\f1 \'bc\'c6\'cb\'e3\'ca\'fd\'be\'dd\'b2\'bf\'b7\'d6\'b5\'c4\'d7\'dc\'d0\'d0\'ca\'fd
+\f0  (
+\f1 \'cc\'f8\'b9\'fd\'b1\'ed\'cd\'b7
+\f0 )\
+total_lines=$(tail -n +2 "$INPUT_FILE" | wc -l)\
+# 
+\f1 \'bc\'c6\'cb\'e3
+\f0 10%
+\f1 \'b6\'d4\'d3\'a6\'b5\'c4\'d0\'d0\'ca\'fd
+\f0 \
+cutoff_lines=$((total_lines / 10))\
+\
+# 
+\f1 \'b7\'c0\'d6\'b9\'ce\'c4\'bc\'fe\'b9\'fd\'d0\'a1\'b5\'bc\'d6\'c2\'d0\'d0\'ca\'fd\'ce\'aa
+\f0 0\
+if [ "$cutoff_lines" -eq 0 ]; then\
+    cutoff_lines=1\
+fi\
+\
+echo "
+\f1 \'ca\'fd\'be\'dd\'d0\'d0\'ca\'fd
+\f0 : $total_lines"\
+echo "
+\f1 \'bd\'ab\'c9\'b8\'d1\'a1\'c1\'bd\'b8\'f6\'cc\'f5\'bc\'fe\'b5\'c4\'c7\'b0
+\f0  10% ($cutoff_lines 
+\f1 \'d0\'d0
+\f0 ) 
+\f1 \'b5\'c4\'ca\'fd\'be\'dd
+\f0 ..."\
+\
+# --- 3. 
+\f1 \'ba\'cb\'d0\'c4\'c9\'b8\'d1\'a1\'c3\'fc\'c1\'ee
+\f0  ---\
+# 
+\f1 \'ca\'d7\'cf\'c8\'bd\'ab\'b1\'ed\'cd\'b7\'d0\'b4\'c8\'eb\'ca\'e4\'b3\'f6\'ce\'c4\'bc\'fe
+\f0 \
+echo "$HEADER" > "$OUTPUT_FILE"\
+\
+# 
+\f1 \'ca\'b9\'d3\'c3
+\f0 awk
+\f1 \'ba\'cd\'bd\'f8\'b3\'cc\'cc\'e6\'bb\'bb\'c0\'b4\'d5\'d2\'b5\'bd\'c1\'bd\'b8\'f6\'cc\'f5\'bc\'fe\'b5\'c4\'bd\'bb\'bc\'af\'a3\'ac\'b2\'a2\'bd\'ab\'bd\'e1\'b9\'fb\'d7\'b7\'bc\'d3\'b5\'bd\'ca\'e4\'b3\'f6\'ce\'c4\'bc\'fe
+\f0 \
+# 
+\f1 \'c2\'df\'bc\'ad
+\f0 :\
+# NR==FNR \{a[$0]; next\} $0 in a' file1 file2 : 
+\f1 \'d5\'d2\'b3\'f6
+\f0  file1 
+\f1 \'ba\'cd
+\f0  file2 
+\f1 \'b5\'c4\'bd\'bb\'bc\'af
+\f0 \
+# <(command) : 
+\f1 \'bd\'ab\'d2\'bb\'b8\'f6\'c3\'fc\'c1\'ee\'b5\'c4\'ca\'e4\'b3\'f6\'ce\'b1\'d7\'b0\'b3\'c9\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe
+\f0  (
+\f1 \'bd\'f8\'b3\'cc\'cc\'e6\'bb\'bb
+\f0 )\
+# 
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'ca\'e4\'c8\'eb
+\f0  (file1): 
+\f1 \'b0\'b4\'b5\'da
+\f0 4
+\f1 \'c1\'d0
+\f0 (SignificanceFlag/P
+\f1 \'d6\'b5
+\f0 )
+\f1 \'c9\'fd\'d0\'f2\'c5\'c5\'d0\'f2\'a3\'ac\'c8\'a1\'c7\'b0
+\f0 10%\
+# 
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'ca\'e4\'c8\'eb
+\f0  (file2): 
+\f1 \'b0\'b4\'b5\'da
+\f0 3
+\f1 \'c1\'d0
+\f0 (EffectSize)
+\f1 \'b5\'c4\'be\'f8\'b6\'d4\'d6\'b5\'bd\'b5\'d0\'f2\'c5\'c5\'d0\'f2\'a3\'ac\'c8\'a1\'c7\'b0
+\f0 10%\
+awk 'NR==FNR \{a[$0]; next\} $0 in a' \\\
+    <(tail -n +2 "$INPUT_FILE" | sort -k4,4g | head -n "$cutoff_lines") \\\
+    <(tail -n +2 "$INPUT_FILE" | awk '\{ val = ($3 < 0) ? -$3 : $3; print val "\\t" $0 \}' | sort -k1,1nr | head -n "$cutoff_lines" | cut -f2-) \\\
+    >> "$OUTPUT_FILE"\
+\
+# --- 4. 
+\f1 \'cd\'ea\'b3\'c9
+\f0  ---\
+final_count=$(tail -n +2 "$OUTPUT_FILE" | wc -l)\
+echo "
+\f1 \'cd\'ea\'b3\'c9\'a3\'a1
+\f0 "\
+echo "
+\f1 \'d7\'ee\'d6\'d5\'c9\'b8\'d1\'a1\'b3\'f6
+\f0  $final_count 
+\f1 \'d0\'d0\'cd\'ac\'ca\'b1\'c2\'fa\'d7\'e3\'c1\'bd\'b8\'f6\'cc\'f5\'bc\'fe\'b5\'c4\'bd\'e1\'b9\'fb\'a1\'a3
+\f0 "\
+echo "
+\f1 \'bd\'e1\'b9\'fb\'d2\'d1\'b1\'a3\'b4\'e6\'b5\'bd\'ce\'c4\'bc\'fe
+\f0 : $OUTPUT_FILE"\
+\
+\
+\pard\pardeftab720\partightenfactor0
+
+\f2 \cf0 \expnd0\expndtw0\kerning0
+sed -E 's/^([^[:space:]]+)_ld/\\1/' eqtl_summary_filtered.txt > eqtl_summary_filtered.txt.bak
+\f0 \kerning1\expnd0\expndtw0 \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+#####################################\
+#
+\f1 \'d7\'a2\'ca\'cd\'b3\'c9\'bb\'f9\'d2\'f2
+\f0 \
+awk '\
+    # 
+\f1 \'c9\'e8\'d6\'c3\'ca\'e4\'c8\'eb\'ba\'cd\'ca\'e4\'b3\'f6\'d7\'d6\'b6\'ce\'b7\'d6\'b8\'f4\'b7\'fb\'ce\'aa\'d6\'c6\'b1\'ed\'b7\'fb
+\f0 \
+    BEGIN \{ FS=OFS="\\t" \}\
+\
+    # 
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  (anno_hg38.tsv) 
+\f1 \'b2\'a2\'b4\'e6\'c8\'eb\'c4\'da\'b4\'e6
+\f0 \
+    # NR==FNR 
+\f1 \'d5\'e2\'b8\'f6\'cc\'f5\'bc\'fe\'d6\'bb\'d4\'da\'b6\'c1\'c8\'a1\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'ca\'b1\'ce\'aa\'d5\'e6
+\f0 \
+    NR==FNR \{\
+        # 
+\f1 \'ca\'b9\'d3\'c3\'c8\'be\'c9\'ab\'cc\'e5\'c3\'fb\'b3\'c6\'d7\'f7\'ce\'aa\'d2\'bb\'bc\'b6\'cb\'f7\'d2\'fd
+\f0 \
+        chr = $1\
+        # C
+\f1 \'d3\'ef\'d1\'d4\'b7\'e7\'b8\'f1\'b5\'c4\'ca\'fd\'d7\'e9\'a3\'ac\'ce\'aa\'c3\'bf\'cc\'f5\'c8\'be\'c9\'ab\'cc\'e5\'b4\'b4\'bd\'a8\'d2\'bb\'b8\'f6\'bc\'c6\'ca\'fd\'c6\'f7
+\f0 \
+        count[chr]++\
+        idx = count[chr]\
+        # 
+\f1 \'bd\'ab\'bb\'f9\'d2\'f2\'b5\'c4\'c6\'f0\'ca\'bc\'a1\'a2\'d6\'d5\'d6\'b9\'ba\'cd
+\f0 ID
+\f1 \'b4\'e6\'c8\'eb\'b6\'fe\'ce\'ac\'ca\'fd\'d7\'e9
+\f0 \
+        start[chr][idx] = $2\
+        end[chr][idx] = $3\
+        gene[chr][idx] = $4\
+        # next 
+\f1 \'b1\'ed\'ca\'be\'b4\'a6\'c0\'ed\'cd\'ea\'b5\'b1\'c7\'b0\'d0\'d0\'ba\'f3\'a3\'ac\'c1\'a2\'bc\'b4\'cc\'f8\'b5\'bd\'cf\'c2\'d2\'bb\'d0\'d0\'a3\'ac\'b2\'bb\'d4\'d9\'d6\'b4\'d0\'d0\'ba\'f3\'c3\'e6\'b5\'c4\'b4\'fa\'c2\'eb\'bf\'e9
+\f0 \
+        next\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1
+\f0 edQTL
+\f1 \'ce\'c4\'bc\'fe
+\f0  (edqtl_effctsize_edsite.tsv)\
+    \{\
+        # 
+\f1 \'b4\'d3\'b5\'da\'c8\'fd\'c1\'d0
+\f0  (e.g., "chr10_593056") 
+\f1 \'d6\'d0\'bd\'e2\'ce\'f6\'b3\'f6\'c8\'be\'c9\'ab\'cc\'e5\'ba\'cd\'ce\'bb\'d6\'c3
+\f0 \
+        split($1, edsite_parts, "_")\
+        chr = edsite_parts[1]\
+        pos = edsite_parts[2]\
+\
+        # 
+\f1 \'b1\'e9\'c0\'fa\'c4\'da\'b4\'e6\'d6\'d0\'b8\'c3\'c8\'be\'c9\'ab\'cc\'e5\'b6\'d4\'d3\'a6\'b5\'c4\'cb\'f9\'d3\'d0\'bb\'f9\'d2\'f2\'c7\'f8\'bc\'e4
+\f0 \
+        for (i = 1; i <= count[chr]; i++) \{\
+            # 
+\f1 \'c5\'d0\'b6\'cf
+\f0 edsite
+\f1 \'b5\'c4\'ce\'bb\'d6\'c3\'ca\'c7\'b7\'f1\'c2\'e4\'d4\'da\'c4\'b3\'b8\'f6\'bb\'f9\'d2\'f2\'b5\'c4\'c7\'f8\'bc\'e4\'c4\'da
+\f0 \
+            if (pos >= start[chr][i] && pos <= end[chr][i]) \{\
+                # 
+\f1 \'c8\'e7\'b9\'fb\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'bb\'f1\'c8\'a1\'bb\'f9\'d2\'f2
+\f0 ID\
+                geneID = gene[chr][i]\
+                \
+                # 
+\f1 \'b0\'b4\'d5\'d5\'c4\'e3\'d2\'aa\'c7\'f3\'b5\'c4\'b8\'f1\'ca\'bd
+\f0  "ENSG..._snpID" 
+\f1 \'b9\'b9\'bd\'a8\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0
+\f0 \
+                new_id = geneID "_" $1\
+\
+                # 
+\f1 \'b4\'f2\'d3\'a1\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'a3\'ac\'d2\'d4\'bc\'b0\'d4\'ad\'ca\'bc\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da
+\f0 2
+\f1 \'a1\'a2
+\f0 3
+\f1 \'c1\'d0
+\f0 \
+                print new_id, $2, $3,$4\
+                \
+                # 
+\f1 \'d5\'d2\'b5\'bd\'ba\'f3\'be\'cd\'cc\'f8\'b3\'f6\'d1\'ad\'bb\'b7\'a3\'ac\'b1\'dc\'c3\'e2\'d2\'bb\'b8\'f6
+\f0 edsite
+\f1 \'b1\'bb\'d6\'d8\'b8\'b4\'d7\'a2\'ca\'cd\'b5\'bd\'d6\'d8\'b5\'fe\'bb\'f9\'d2\'f2\'c9\'cf
+\f0 \
+                break\
+            \}\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/anno_hg38.tsv /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_filtered.txt.bak  > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_effctsize_edsite.tsv\
+\
+\
+\
+# 
+\f1 \'b5\'da\'d2\'bb\'b2\'bd\'bb\'f9\'d3\'da
+\f0  redqtl 
+\f1 \'b5\'c4\'c9\'b8\'d1\'a1\'cd\'ea\'b3\'c9\'c1\'cb
+\f0 \
+############
+\f1 \'cc\'ed\'bc\'d3
+\f0 PPH4\
+cd   /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene\
+\
+#
+\f1 \'d2\'aa\'cf\'c8\'d7\'aa\'bb\'bb
+\f0 coloc 
+\f1 \'ce\'c4\'bc\'fe\'b5\'c4\'b0\'e6\'b1\'be
+\f0 19 to38\
+\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed
+\f0  coloc 
+\f1 \'ce\'c4\'bc\'fe\'a3\'ac\'cc\'e1\'c8\'a1
+\f0  "chrN_pos" 
+\f1 \'ba\'cd
+\f0  pph4\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f3 \cf2 awk \cf3 'BEGIN\{OFS="\\t"\}\
+     NR==FNR \{map[$2]=$1; next\}  # 
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe
+\f3 : hg19 -> hg38 
+\f1 \'d3\'b3\'c9\'e4
+\f3 \
+     \{\
+       gsub(/_ld$/, "", $1);     # 
+\f1 \'c8\'a5\'b5\'f4
+\f3  _ld\
+       if ($1 in map) \{\
+         print map[$1], $7       # 
+\f1 \'cc\'e6\'bb\'bb\'b3\'c9
+\f3  hg38 key, 
+\f1 \'ca\'e4\'b3\'f6
+\f3  pph4\
+       \}\
+     \}'\cf2  \\\
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19 \\\
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/EAS_region_ShjeadCZ.pp.coloc.result \\\
+> coloc_key_pph4_hg38.tsv
+\f0 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+# 
+\f1 \'b4\'a6\'c0\'ed
+\f0  edQTL 
+\f1 \'ce\'c4\'bc\'fe\'a3\'ac\'cc\'e1\'c8\'a1\'c6\'a5\'c5\'e4\'bc\'fc
+\f0  "chrN_pos"\
+awk 'BEGIN\{OFS="\\t"\} \{ split($1,a,"_"); key=a[2]"_"a[3]; print $0, key \}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_effctsize_edsite.tsv \\\
+> edqtl_withkey.tsv\
+\
+# 
+\f1 \'d3\'c3
+\f0  awk 
+\f1 \'bd\'f8\'d0\'d0\'c6\'a5\'c5\'e4\'a3\'ac\'b0\'d1
+\f0  pph4 
+\f1 \'bc\'d3\'b5\'bd\'d0\'c2\'b5\'c4\'d2\'bb\'c1\'d0
+\f0 \
+awk 'BEGIN\{OFS="\\t"\}\
+     NR==FNR \{pph4[$1]=$2; next\}\
+     \{print $0, (pph4[$NF] ? pph4[$NF] : "NA")\}' \\\
+     coloc_key_pph4.tsv edqtl_withkey.tsv \\\
+> edqtl_with_pph4.tsv\
+\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f3 \cf2 awk \cf3 'BEGIN\{OFS="\\t"\} $NF > 0.75'\cf2  edqtl_with_pph4.tsv > edqtl_with_pph4_pph4gt0.75.tsv
+\f0 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs18 \cf4 #
+\f1 \'bd\'e1\'b9\'fb\'cc\'d8\'b1\'f0\'c9\'d9\'a3\'ac\'bf\'b4\'d2\'bb\'cf\'c2\'ca\'c7\'b2\'bb\'ca\'c7\'d2\'bb\'b8\'f6\'b0\'e6\'b1\'be\'b5\'c4
+\f0 \
+\
+grep "chr1_9987436"  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt\
+\
+#
+\f1 \'b2\'e9\'b2\'bb\'b5\'bd\'a3\'ac\'cb\'b5\'c3\'f7
+\f0 redqtl 
+\f1 \'ca\'c7
+\f0 38
+\f1 \'b5\'c4\'a3\'ac
+\f0 coloc 
+\f1 \'ca\'c7
+\f0 19
+\f1 \'b5\'c4
+\f0 \
+\
+chr10_101810828   chr10_103570585\
+\
+grep "chr10_101810828"  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt\
+#3
+\f1 \'d0\'d0
+\f0 \
+grep "chr10_103570585"  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt\
+#0
+\f1 \'d0\'d0
+\f0 \
+grep "chr10_103570585"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/EAS_region_ShjeadCZ.pp.coloc.result \
+#1
+\f1 \'d0\'d0
+\f0 \
+grep "chr10_101810828"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/EAS_region_ShjeadCZ.pp.coloc.result \
+#0
+\f1 \'d0\'d0
+\f0 \
+#
+\f1 \'d6\'a4\'c3\'f7\'c1\'cb\'d5\'e2\'d2\'bb\'b5\'e3\'a3\'ac
+\f0 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 \
+#
+\f1 \'ce\'d2\'d3\'c3
+\f0 0.75
+\f1 \'c9\'b8\'d1\'a1\'be\'cd\'d6\'bb\'ca\'a3\'cf\'c2\'d2\'bb\'b8\'f6\'bb\'f9\'d2\'f2
+\f0 ENSG00000109332
+\f1 \'a1\'a3
+\f0   
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+UBE2D3
+\f0\fs36 \cf0 \kerning1\expnd0\expndtw0  
+\f1 \'c1\'cb
+\f0 \
+#
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4_103731698
+\fs24                     chr10_35615695
+\f0\fs36 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f3 \cf2 grep \'91
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4_103731698
+\f3\fs36 \cf2 \kerning1\expnd0\expndtw0 \'92/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19 \
+\
+\
+
+\f0 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf4 grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4_103731698
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19 
+\f0 \cf4 \
+grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_key_pph4.tsv   \
+grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4_102810541
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_with_pph4.tsv \cf0 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+#chr10_65094271
+\fs24  \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr10_65094271
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19 
+\f0 \cf4 \
+grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr4
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_key_pph4.tsv   \
+grep "
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+chr10_63334511
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 "  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_with_pph4.tsv \
+#
+\f1 \cf2 \'d7\'dc\'bd\'e1\'d2\'bb\'cf\'c2
+\f0 \cf4 \
+cut -f1 eqtl_summary_flag.txt | sort -u | wc -l\
+cut -f1 eqtl_summary_filtered.txt | sort -u | wc -l\
+\
+\
+#
+\f1 \'bf\'b4\'d2\'bb\'cf\'c2\'b2\'bb\'ca\'c7\'c7\'b0
+\f0 10%
+\f1 \'a3\'ac\'b5\'c4
+\f0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19 \
+\
+awk \cf3 'BEGIN\{OFS="\\t"\} $NF > 0.75'\cf2  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/EAS_region_ShjeadCZ.pp.coloc.result \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0 \cf4 \
+\
+\
+\
+redqtl  nominal 	
+\f1 \'b5\'c4\'d0\'c5\'ba\'c5\'a3\'ba
+\f0 122228
+\f1 \'a1\'a3
+\f0  Edregion
+\f1 \'a3\'ba
+\f0   1558    pph4>0.7
+\f1 \'b5\'c4\'a1\'a3
+\f0     5
+\f1 \'b8\'f6
+\f0     >0.85
+\f1 \'b5\'c4\'a1\'a3
+\f0 4
+\f1 \'b8\'f6
+\f0 \
+redqtl 
+\f1 \'a1\'a3
+\f0 effect size.  p 
+\f1 \'be\'f9\'d4\'da\'c7\'b0
+\f0 10%
+\f1 \'b5\'c4\'a3\'ba
+\f0 8234   Edregion
+\f1 \'a3\'ba
+\f0 118          1
+\f1 \'b8\'f6\'a1\'a3
+\f0   
+\f2\fs42\fsmilli21333 \cf5 \expnd0\expndtw0\kerning0
+UBE2D3
+\fs24 \
+
+\f0\fs36 \cf4 \kerning1\expnd0\expndtw0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+#############3
+\f1 \'cf\'d6\'d4\'da\'bf\'aa\'ca\'bc\'cd\'b3\'bc\'c6\'c4\'c7\'d0\'a9\'d6\'b1\'bd\'d3\'c2\'e4\'b5\'bd\'cd\'e2\'cf\'d4\'d7\'d3\'c7\'f8\'d3\'f2\'b5\'c4
+\f0 edqtl\
+\pard\pardeftab720\partightenfactor0
+
+\f2 \cf0 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/exonic_edsite\
+#
+\f4 \'b8\'f1\'ca\'bd\'a3\'ba
+\f2 chr12_48923065
+\f0 \kerning1\expnd0\expndtw0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+#
+\f1 \'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/anno_hg38.tsv\
+#
+\f1 \'d7\'a2\'ca\'cd\'b3\'c9\'bb\'f9\'d2\'f2
+\f0 \
+awk '\
+    # 
+\f1 \'c9\'e8\'d6\'c3\'ca\'e4\'c8\'eb\'ba\'cd\'ca\'e4\'b3\'f6\'d7\'d6\'b6\'ce\'b7\'d6\'b8\'f4\'b7\'fb\'ce\'aa\'d6\'c6\'b1\'ed\'b7\'fb
+\f0 \
+    BEGIN \{ FS=OFS="\\t" \}\
+\
+    # 
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  (anno_hg38.tsv) 
+\f1 \'b2\'a2\'b4\'e6\'c8\'eb\'c4\'da\'b4\'e6
+\f0 \
+    # NR==FNR 
+\f1 \'d5\'e2\'b8\'f6\'cc\'f5\'bc\'fe\'d6\'bb\'d4\'da\'b6\'c1\'c8\'a1\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'ca\'b1\'ce\'aa\'d5\'e6
+\f0 \
+    NR==FNR \{\
+        # 
+\f1 \'ca\'b9\'d3\'c3\'c8\'be\'c9\'ab\'cc\'e5\'c3\'fb\'b3\'c6\'d7\'f7\'ce\'aa\'d2\'bb\'bc\'b6\'cb\'f7\'d2\'fd
+\f0 \
+        chr = $1\
+        # C
+\f1 \'d3\'ef\'d1\'d4\'b7\'e7\'b8\'f1\'b5\'c4\'ca\'fd\'d7\'e9\'a3\'ac\'ce\'aa\'c3\'bf\'cc\'f5\'c8\'be\'c9\'ab\'cc\'e5\'b4\'b4\'bd\'a8\'d2\'bb\'b8\'f6\'bc\'c6\'ca\'fd\'c6\'f7
+\f0 \
+        count[chr]++\
+        idx = count[chr]\
+        # 
+\f1 \'bd\'ab\'bb\'f9\'d2\'f2\'b5\'c4\'c6\'f0\'ca\'bc\'a1\'a2\'d6\'d5\'d6\'b9\'ba\'cd
+\f0 ID
+\f1 \'b4\'e6\'c8\'eb\'b6\'fe\'ce\'ac\'ca\'fd\'d7\'e9
+\f0 \
+        start[chr][idx] = $2\
+        end[chr][idx] = $3\
+        gene[chr][idx] = $4\
+        # next 
+\f1 \'b1\'ed\'ca\'be\'b4\'a6\'c0\'ed\'cd\'ea\'b5\'b1\'c7\'b0\'d0\'d0\'ba\'f3\'a3\'ac\'c1\'a2\'bc\'b4\'cc\'f8\'b5\'bd\'cf\'c2\'d2\'bb\'d0\'d0\'a3\'ac\'b2\'bb\'d4\'d9\'d6\'b4\'d0\'d0\'ba\'f3\'c3\'e6\'b5\'c4\'b4\'fa\'c2\'eb\'bf\'e9
+\f0 \
+        next\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1
+\f0 edQTL
+\f1 \'ce\'c4\'bc\'fe
+\f0  (edqtl_effctsize_edsite.tsv)\
+    \{\
+        # 
+\f1 \'b4\'d3\'b5\'da
+\f0 1
+\f1 \'c1\'d0
+\f0  (e.g., "chr10_593056") 
+\f1 \'d6\'d0\'bd\'e2\'ce\'f6\'b3\'f6\'c8\'be\'c9\'ab\'cc\'e5\'ba\'cd\'ce\'bb\'d6\'c3
+\f0 \
+        split($1, edsite_parts, "_")\
+        chr = edsite_parts[1]\
+        pos = edsite_parts[2]\
+\
+        # 
+\f1 \'b1\'e9\'c0\'fa\'c4\'da\'b4\'e6\'d6\'d0\'b8\'c3\'c8\'be\'c9\'ab\'cc\'e5\'b6\'d4\'d3\'a6\'b5\'c4\'cb\'f9\'d3\'d0\'bb\'f9\'d2\'f2\'c7\'f8\'bc\'e4
+\f0 \
+        for (i = 1; i <= count[chr]; i++) \{\
+            # 
+\f1 \'c5\'d0\'b6\'cf
+\f0 edsite
+\f1 \'b5\'c4\'ce\'bb\'d6\'c3\'ca\'c7\'b7\'f1\'c2\'e4\'d4\'da\'c4\'b3\'b8\'f6\'bb\'f9\'d2\'f2\'b5\'c4\'c7\'f8\'bc\'e4\'c4\'da
+\f0 \
+            if (pos >= start[chr][i] && pos <= end[chr][i]) \{\
+                # 
+\f1 \'c8\'e7\'b9\'fb\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'bb\'f1\'c8\'a1\'bb\'f9\'d2\'f2
+\f0 ID\
+                geneID = gene[chr][i]\
+                \
+                # 
+\f1 \'b0\'b4\'d5\'d5\'c4\'e3\'d2\'aa\'c7\'f3\'b5\'c4\'b8\'f1\'ca\'bd
+\f0  "ENSG..._snpID" 
+\f1 \'b9\'b9\'bd\'a8\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0
+\f0 \
+                new_id = geneID \
+\
+                # 
+\f1 \'b4\'f2\'d3\'a1\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'a3\'ac\'d2\'d4\'bc\'b0\'d4\'ad\'ca\'bc\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da
+\f0 2
+\f1 \'a1\'a2
+\f0 3
+\f1 \'c1\'d0
+\f0 \
+                print new_id, $1\
+                \
+                # 
+\f1 \'d5\'d2\'b5\'bd\'ba\'f3\'be\'cd\'cc\'f8\'b3\'f6\'d1\'ad\'bb\'b7\'a3\'ac\'b1\'dc\'c3\'e2\'d2\'bb\'b8\'f6
+\f0 edsite
+\f1 \'b1\'bb\'d6\'d8\'b8\'b4\'d7\'a2\'ca\'cd\'b5\'bd\'d6\'d8\'b5\'fe\'bb\'f9\'d2\'f2\'c9\'cf
+\f0 \
+                break\
+            \}\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/anno_hg38.tsv 
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/exonic_edsite
+\f0 \kerning1\expnd0\expndtw0   > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic_gene.tsv\
+\
+\
+#
+\f1 \'cd\'b3\'bc\'c6\'bb\'f9\'d2\'f2\'ca\'fd\'a1\'a3
+\f0 \
+cut -f1 exonic_edsite | sort -u | wc -l\
+cut -f1 exonic_gene.tsv | sort | uniq -c | sort -nr\
+\
+#
+\f1 \'b7\'a2\'cf\'d6\'bb\'d4\'b8\'e7\'b5\'c4\'ce\'c4\'bc\'fe\'bc\'d0\'ba\'cd\'bb\'d4\'b8\'e7\'b5\'c4\'bd\'e1\'b9\'fb\'c9\'cf\'b1\'df\'b5\'c4\'ca\'fd\'d7\'d6\'b2\'bb\'d2\'bb\'d1\'f9
+\f0 \
+awk '\{print $10\}' site_anno |head.       #ncRNA_intronic\
+\
+#
+\f1 \'d7\'a2\'ca\'cd\'d0\'c5\'cf\'a2
+\f0 \
+# \cf6 \cb7  
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/
+\f0 \kerning1\expnd0\expndtw0 site_anno\cf0 \cb1  \
+#18149
+\f1 \'d0\'d0
+\f0   
+\fs24 \cf2  
+\f5 18,648  		#
+\f4 \'b2\'ee\'b2\'bb\'b6\'e0\
+\
+#
+\f0\fs36 \cf0 \
+#
+\f1 \'b1\'a3\'c1\'f4
+\f0 exonic 
+\f1 \'b5\'c4\'d7\'a2\'ca\'cd\'c1\'d0
+\f0 \
+awk '$10 ~ /exonic$/ \{print\}' site_anno > \cf8 \cb9 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic.tsv\cf0 \cb1 \
+\
+#site\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f2 \cf0 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nopermute.all.signicifant\
+\
+awk 'BEGIN\{OFS="\\t"\} \{print $1, $8, $14, $16\}' \\\
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nopermute.all.signicifant \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/eqtl_summary.txt\
+\
+#
+\f4 \'bf\'aa\'ca\'bc\'cb\'f7\'d2\'fd
+\f2 \
+awk 'BEGIN\{FS=OFS="\\t"\}\
+     NR==FNR \{anno[$NF]=$10; next\}   # 
+\f4 \'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ba
+\f2 key=
+\f4 \'d7\'ee\'ba\'f3\'d2\'bb\'c1\'d0\'a3\'ac
+\f2 value=
+\f4 \'b5\'da\'ca\'ae\'c1\'d0\'a3\'a8\'d7\'a2\'ca\'cd\'a3\'a9
+\f2 \
+     ($1 in anno) \{print $0, anno[$1]\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic.tsv \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/eqtl_summary.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/eqtl_exonic.txt\
+\
+#
+\f4 \'cb\'f7\'d2\'fd\'bb\'f9\'d2\'f2
+\f2 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0 \cf0 \kerning1\expnd0\expndtw0 awk '\
+    # 
+\f1 \'c9\'e8\'d6\'c3\'ca\'e4\'c8\'eb\'ba\'cd\'ca\'e4\'b3\'f6\'d7\'d6\'b6\'ce\'b7\'d6\'b8\'f4\'b7\'fb\'ce\'aa\'d6\'c6\'b1\'ed\'b7\'fb
+\f0 \
+    BEGIN \{ FS=OFS="\\t" \}\
+\
+    # 
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  (anno_hg38.tsv) 
+\f1 \'b2\'a2\'b4\'e6\'c8\'eb\'c4\'da\'b4\'e6
+\f0 \
+    # NR==FNR 
+\f1 \'d5\'e2\'b8\'f6\'cc\'f5\'bc\'fe\'d6\'bb\'d4\'da\'b6\'c1\'c8\'a1\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'ca\'b1\'ce\'aa\'d5\'e6
+\f0 \
+    NR==FNR \{\
+        # 
+\f1 \'ca\'b9\'d3\'c3\'c8\'be\'c9\'ab\'cc\'e5\'c3\'fb\'b3\'c6\'d7\'f7\'ce\'aa\'d2\'bb\'bc\'b6\'cb\'f7\'d2\'fd
+\f0 \
+        chr = $1\
+        # C
+\f1 \'d3\'ef\'d1\'d4\'b7\'e7\'b8\'f1\'b5\'c4\'ca\'fd\'d7\'e9\'a3\'ac\'ce\'aa\'c3\'bf\'cc\'f5\'c8\'be\'c9\'ab\'cc\'e5\'b4\'b4\'bd\'a8\'d2\'bb\'b8\'f6\'bc\'c6\'ca\'fd\'c6\'f7
+\f0 \
+        count[chr]++\
+        idx = count[chr]\
+        # 
+\f1 \'bd\'ab\'bb\'f9\'d2\'f2\'b5\'c4\'c6\'f0\'ca\'bc\'a1\'a2\'d6\'d5\'d6\'b9\'ba\'cd
+\f0 ID
+\f1 \'b4\'e6\'c8\'eb\'b6\'fe\'ce\'ac\'ca\'fd\'d7\'e9
+\f0 \
+        start[chr][idx] = $2\
+        end[chr][idx] = $3\
+        gene[chr][idx] = $4\
+        # next 
+\f1 \'b1\'ed\'ca\'be\'b4\'a6\'c0\'ed\'cd\'ea\'b5\'b1\'c7\'b0\'d0\'d0\'ba\'f3\'a3\'ac\'c1\'a2\'bc\'b4\'cc\'f8\'b5\'bd\'cf\'c2\'d2\'bb\'d0\'d0\'a3\'ac\'b2\'bb\'d4\'d9\'d6\'b4\'d0\'d0\'ba\'f3\'c3\'e6\'b5\'c4\'b4\'fa\'c2\'eb\'bf\'e9
+\f0 \
+        next\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'b9\'fd\'b3\'cc\'a3\'ba\'b6\'c1\'c8\'a1
+\f0 edQTL
+\f1 \'ce\'c4\'bc\'fe
+\f0  (edqtl_effctsize_edsite.tsv)\
+    \{\
+        # 
+\f1 \'b4\'d3\'b5\'da
+\f0 1
+\f1 \'c1\'d0
+\f0  (e.g., "chr10_593056") 
+\f1 \'d6\'d0\'bd\'e2\'ce\'f6\'b3\'f6\'c8\'be\'c9\'ab\'cc\'e5\'ba\'cd\'ce\'bb\'d6\'c3
+\f0 \
+        split($1, edsite_parts, "_")\
+        chr = edsite_parts[1]\
+        pos = edsite_parts[2]\
+\
+        # 
+\f1 \'b1\'e9\'c0\'fa\'c4\'da\'b4\'e6\'d6\'d0\'b8\'c3\'c8\'be\'c9\'ab\'cc\'e5\'b6\'d4\'d3\'a6\'b5\'c4\'cb\'f9\'d3\'d0\'bb\'f9\'d2\'f2\'c7\'f8\'bc\'e4
+\f0 \
+        for (i = 1; i <= count[chr]; i++) \{\
+            # 
+\f1 \'c5\'d0\'b6\'cf
+\f0 edsite
+\f1 \'b5\'c4\'ce\'bb\'d6\'c3\'ca\'c7\'b7\'f1\'c2\'e4\'d4\'da\'c4\'b3\'b8\'f6\'bb\'f9\'d2\'f2\'b5\'c4\'c7\'f8\'bc\'e4\'c4\'da
+\f0 \
+            if (pos >= start[chr][i] && pos <= end[chr][i]) \{\
+                # 
+\f1 \'c8\'e7\'b9\'fb\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'bb\'f1\'c8\'a1\'bb\'f9\'d2\'f2
+\f0 ID\
+                geneID = gene[chr][i]\
+                \
+                # 
+\f1 \'b0\'b4\'d5\'d5\'c4\'e3\'d2\'aa\'c7\'f3\'b5\'c4\'b8\'f1\'ca\'bd
+\f0  "ENSG..._snpID" 
+\f1 \'b9\'b9\'bd\'a8\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0
+\f0 \
+                new_id = geneID \
+\
+                # 
+\f1 \'b4\'f2\'d3\'a1\'d0\'c2\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'a3\'ac\'d2\'d4\'bc\'b0\'d4\'ad\'ca\'bc\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da
+\f0 2
+\f1 \'a1\'a2
+\f0 3
+\f1 \'c1\'d0
+\f0 \
+                print new_id, $1,$2,$3,$4,$5\
+                \
+                # 
+\f1 \'d5\'d2\'b5\'bd\'ba\'f3\'be\'cd\'cc\'f8\'b3\'f6\'d1\'ad\'bb\'b7\'a3\'ac\'b1\'dc\'c3\'e2\'d2\'bb\'b8\'f6
+\f0 edsite
+\f1 \'b1\'bb\'d6\'d8\'b8\'b4\'d7\'a2\'ca\'cd\'b5\'bd\'d6\'d8\'b5\'fe\'bb\'f9\'d2\'f2\'c9\'cf
+\f0 \
+                break\
+            \}\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/anno_hg38.tsv 
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/eqtl_exonic.txt
+\f0 \kerning1\expnd0\expndtw0   > /
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/
+\f0 \kerning1\expnd0\expndtw0 exonic_gene.tsv
+\f2 \expnd0\expndtw0\kerning0
+\
+\
+\
+\
+
+\f0 \kerning1\expnd0\expndtw0 #
+\f1 \'cd\'b3\'bc\'c6\'ca\'fd\'c1\'bf\'a1\'a3
+\f0 \
+cut -f1 
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/eqtl_exonic.txt
+\f0 \kerning1\expnd0\expndtw0 | sort -u | wc -l    # 369site \
+\
+cut  -f1 /
+\f2 \expnd0\expndtw0\kerning0
+gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/
+\f0 \kerning1\expnd0\expndtw0 exonic_gene.tsv|sort -u | wc -l  #108gene\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f2 \cf0 \expnd0\expndtw0\kerning0
+\
+\
+#
+\f4 \'cf\'d6\'d4\'da\'ca\'c7
+\f6\fs28 \cf10 \kerning1\expnd0\expndtw0 ncRNA_exonic 
+\f1 \'ba\'cd
+\f6 exonic\
+ncRNA_exonic+exonic
+\f1 \'a1\'a3
+\f6  \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs48 \cf11 ###
+\f1 \'d5\'e2\'d2\'bb\'b2\'bd\'cb\'c6\'ba\'f5\'b8\'f1\'ca\'bd\'b3\'f6\'c1\'cb\'ce\'ca\'cc\'e2\'a3\'ba\'d3\'b0\'cf\'ec\'c1\'cb\'ba\'f3\'b1\'df\'b5\'c4
+\f6  /site_anno_exonic_only.tsv
+\f1 \'ba\'cd
+\f6 site_anno_with_gene.tsv
+\fs28 \cf10 \
+awk '$6== "exonic" \{print\}' 
+\f0\fs36 \cf0  /
+\f2 \expnd0\expndtw0\kerning0
+gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/
+\f0 \kerning1\expnd0\expndtw0 exonic_gene.tsv
+\f6\fs28 \cf10 \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv
+\f2\fs36 \cf0 \expnd0\expndtw0\kerning0
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs44 \cf0 \kerning1\expnd0\expndtw0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 cut  -f1 
+\f6\fs28 \cf10 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv
+\f0\fs36 \cf0 |sort -u | wc -l  #21 gene
+\fs44 \
+
+\fs36 cut  -f2 
+\f6\fs28 \cf10 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv
+\f0\fs36 \cf0 |sort -u | wc -l  #47 site
+\fs44 \
+
+\fs36 cut -f1 
+\f6\fs28 \cf10 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv
+\f0\fs36 \cf0  | sort | uniq -c | sort -nr
+\fs44 \
+
+\fs36 #cut -f1 exonic_gene.tsv | sort | uniq -c | sort -nr
+\fs44 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs22 \cf4 #
+\f1 \'bd\'e1\'b9\'fb\'cc\'d8\'b1\'f0\'c9\'d9\'a3\'ac\'bf\'b4\'d2\'bb\'cf\'c2\'ca\'c7\'b2\'bb\'ca\'c7\'d2\'bb\'b8\'f6\'b0\'e6\'b1\'be\'b5\'c4
+\f0\fs20 \
+grep "chr10_1706898" /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/eqtl_summary_flag.txt\
+\
+\
+
+\fs22 grep  "chr4_102815176"  
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/condi_site_38to19\
+\
+\
+\
+\
+
+\f0 \cf4 grep  "chr10_1706898"  
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19    
+\f0\fs20 \cf4 \
+#
+\f1 \'b2\'e9\'b5\'bd\'c1\'cb
+\f0  
+\f1 \'cb\'b5\'c3\'f7
+\f0  
+\f2\fs22 \cf0 \expnd0\expndtw0\kerning0
+eqtl_summary.txt 
+\f4 \'ca\'c7
+\f2 38
+\f4 \'b5\'c4\'a1\'a3
+\f0\fs20 \cf4 \kerning1\expnd0\expndtw0 \
+grep  "chr4_102815176
+\fs22 "  
+\f3 \cf2 /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19    
+\f0\fs20 \cf4 \
+#
+\f1 \'d2\'b2\'ca\'c7
+\f0 38
+\f1 \'b5\'c4
+\f0  
+\f1 \'c4\'c7\'be\'cd\'ca\'c7\'b4\'fa\'c2\'eb\'ce\'ca\'cc\'e2\'c1\'cb
+\f0 \
+\
+#
+\f1 \'d6\'a4\'c3\'f7\'c1\'cb\'d5\'e2\'d2\'bb\'b5\'e3
+\f0 .  
+\fs38 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs22 \cf0   \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 ############################10.2##################\
+#
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'c8\'ce\'ce\'f1\'a3\'ba\'bc\'ec\'b2\'e9\'cd\'e2\'cf\'d4\'d7\'d3\'bb\'f9\'d2\'f2\'b3\'f6\'c1\'cb\'ca\'b2\'c3\'b4\'ce\'ca\'cc\'e2\'ce\'aa\'ca\'b2\'c3\'b4\'b6\'d4\'b2\'bb\'c9\'cf\'a3\'ac\'cb\'bc\'c2\'b7\'be\'cd\'ca\'c7\'d6\'b1\'bd\'d3\'d5\'d2\'d2\'bb\'b8\'f6
+\f0 exonic_site ,
+\f1 \'c8\'a5\'bf\'b4\'bb\'f9\'d2\'f2\'d7\'e9\'b5\'c4\'ce\'bb\'d6\'c3\'d2\'d4\'bc\'b0\'d7\'a2\'ca\'cd
+\f0 \
+#
+\f1 \'bb\'d4\'b8\'e7\'b3\'f5\'b0\'e6
+\f0 exonic_site
+\f1 \'a3\'ba
+\f2 \expnd0\expndtw0\kerning0
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/exonic_edsite\
+\
+
+\f0 \kerning1\expnd0\expndtw0 \
+#
+\f1 \'ce\'d2\'b5\'c4
+\f0 exonic_site
+\f1 \'a3\'ba
+\f6\fs28 \cf10 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv
+\f0\fs36 \cf0 \
+\
+#
+\f1 \'bf\'b4\'d2\'bb\'cf\'c2\'d3\'d0\'c3\'bb\'d3\'d0\'bd\'bb\'bc\'af
+\f0 \
+awk 'NR==FNR \{a[$1]=NR; next\} ($2 in a) \{print "file1 line " a[$2] ", file2 line " FNR ", value: " $2\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/exonic_edsite /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv\
+\
+#file1 line 47, file2 line 2256, value: chr2_54051001\
+# file1 line 56, file2 line 2341, value: chr4_77058527\
+#file1 line 59, file2 line 2499, value: chr7_100220138\
+\
+#
+\f1 \'b2\'e9\'bf\'b4\'d6\'b8\'b6\'a8\'d0\'d0\'b5\'c4\'bb\'f9\'d2\'f2
+\f0 \
+sed -n '2499p' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv\
+#ENSG00000291122 chr7_100220138  7_100217744_C_T -0.304146       7.47196627069777e-05    exonic\
+#ensembl 
+\f1 \'c9\'cf\'b2\'e9\'b5\'c4\'bd\'e1\'b9\'fb\'ca\'c7\'a3\'ba
+\f7\b \cf12 \cb13 \expnd0\expndtw0\kerning0
+ENSG00000291122
+\f0\b0 \cf14 \'a0{\field{\*\fldinst{HYPERLINK "https://asia.ensembl.org/homo_sapiens/Location/View?r=7:100188087-100272218:-1"}}{\fldrslt \cf12 7:100188087-100272218:-1}}\cf12         
+\f7\b\fs25\fsmilli12800 \cf14 Gene Synonyms
+\f8 \'a3\'ba
+\f0\b0 CASTOR3, DKFZP686B07267, GATS, STAG3OS
+\fs36 \cf12 \
+										      100220138  100220138\
+#
+\f1 \'c3\'bb\'c3\'ab\'b2\'a1
+\f0 \
+#
+\f6\fs28 \cf10 \cb1 \kerning1\expnd0\expndtw0  
+\f9\b Ensembl VEP
+\f8 \'bf\'c9\'d2\'d4\'bf\'b4\'bb\'f9\'d2\'f2\'d7\'e9\'d7\'a2\'ca\'cd\'a3\'ac
+\f0\b0\fs36 \cf12 \cb13 \expnd0\expndtw0\kerning0
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\sl324\slmult1\pardirnatural\partightenfactor0
+
+\f8\b\fs30 \cf10 \cb1 \kerning1\expnd0\expndtw0 \'ce\'aa\'ca\'b2\'c3\'b4\'cd\'ac\'d2\'bb\'b8\'f6\'ce\'bb\'b5\'e3\'bb\'e1\'d3\'d0\'b6\'e0\'cc\'f5\'d7\'a2\'ca\'cd\'a3\'bf
+\f6\b0\fs28 \
+\pard\tqr\tx260\tx420\li420\fi-420\sl324\slmult1\sb240\partightenfactor0
+
+\f5 \cf10 	1.	
+\f8\b \'b2\'bb\'cd\'ac\'d7\'aa\'c2\'bc\'b1\'be
+\f9  (Transcript)
+\f6\b0 \
+\pard\tqr\tx500\tx660\li660\fi-660\sl324\slmult1\sb240\partightenfactor0
+\cf10 	\'95	
+\f1 \'d2\'bb\'b8\'f6\'bb\'f9\'d2\'f2\'cd\'f9\'cd\'f9\'d3\'d0\'b6\'e0\'b8\'f6\'d7\'aa\'c2\'bc\'b1\'be\'a3\'a8\'b2\'bb\'cd\'ac\'b5\'c4\'bc\'f4\'bd\'d3\'d0\'ce\'ca\'bd\'a3\'a9\'a1\'a3
+\f6 \
+	\'95	
+\f1 \'c4\'e3\'b5\'c4\'ce\'bb\'b5\'e3\'bf\'c9\'c4\'dc\'d4\'da\'c4\'b3\'d0\'a9\'d7\'aa\'c2\'bc\'b1\'be\'b5\'c4
+\f6  
+\f8\b \'cd\'e2\'cf\'d4\'d7\'d3
+\f6\b0  \uc0\u8594  
+\f1 \'b1\'bb\'b1\'ea\'d7\'a2\'ce\'aa
+\f6  
+\f9\b missense_variant
+\f1\b0 \'a3\'a8\'b4\'ed\'d2\'e5\'b1\'e4\'d2\'ec\'a3\'a9\'a3\'ac
+\f6 \
+
+\f1 \'b5\'ab\'d4\'da\'c1\'ed\'d2\'bb\'d0\'a9\'d7\'aa\'c2\'bc\'b1\'be\'b5\'c4
+\f6  
+\f8\b \'c4\'da\'ba\'ac\'d7\'d3
+\f6\b0  \uc0\u8594  
+\f1 \'b1\'bb\'b1\'ea\'d7\'a2\'ce\'aa
+\f6  
+\f9\b intron_variant
+\f1\b0 \'a1\'a3
+\f6 \
+	\'95	
+\f1 \'cb\'f9\'d2\'d4\'cd\'ac\'d2\'bb\'b8\'f6\'b1\'e4\'d2\'ec\'bb\'e1\'b6\'d4\'d3\'a6\'b6\'e0\'b8\'f6\'b2\'bb\'cd\'ac\'b5\'c4\'ba\'f3\'b9\'fb\'a1\'a3
+\f6 \
+\pard\tqr\tx260\tx420\li420\fi-420\sl324\slmult1\sb240\partightenfactor0
+
+\f5 \cf10 	2.	
+\f8\b \'b2\'bb\'cd\'ac\'bb\'f9\'d2\'f2
+\f9  / 
+\f8 \'d6\'d8\'b5\'fe\'bb\'f9\'d2\'f2
+\f6\b0 \
+\pard\tqr\tx500\tx660\li660\fi-660\sl324\slmult1\sb240\partightenfactor0
+\cf10 	\'95	
+\f1 \'d3\'d0\'d0\'a9\'c7\'f8\'d3\'f2\'bb\'f9\'d2\'f2\'c3\'dc\'b6\'c8\'b8\'df\'a3\'ac\'d2\'bb\'b8\'f6\'ce\'bb\'d6\'c3\'bf\'c9\'c4\'dc\'cd\'ac\'ca\'b1\'c2\'e4\'d4\'da\'b2\'bb\'cd\'ac\'bb\'f9\'d2\'f2\'b5\'c4\'b2\'bb\'cd\'ac\'d7\'aa\'c2\'bc\'b1\'be\'c9\'cf\'a1\'a3
+\f6 \
+	\'95	
+\f1 \'c4\'e3\'b5\'c4\'c0\'fd\'d7\'d3\'c0\'ef\'a3\'ba
+\f6 \
+\pard\tqr\tx900\tx1060\li660\sl324\slmult1\sb240\partightenfactor0
+\cf10 	\'95	
+\f1 \'d4\'da
+\f6  
+\f9\b PVRIG
+\f6\b0  
+\f1 \'bb\'f9\'d2\'f2\'b5\'c4\'d7\'aa\'c2\'bc\'b1\'be\'c0\'ef\'ca\'c7
+\f6  
+\f8\b \'b4\'ed\'d2\'e5\'cd\'bb\'b1\'e4
+\f1\b0 \'a3\'a8
+\f6 protein_coding
+\f1 \'a3\'a9\'a1\'a3
+\f6 \
+	\'95	
+\f1 \'d4\'da
+\f6  
+\f9\b CASTOR3P
+\f6\b0  
+\f1 \'d5\'e2\'b8\'f6\'bb\'f9\'d2\'f2\'a3\'a8
+\f6 lncRNA
+\f1 \'a3\'ac\'bc\'d9\'bb\'f9\'d2\'f2\'a3\'a9\'b5\'c4\'d2\'bb\'d0\'a9\'d7\'aa\'c2\'bc\'b1\'be\'c0\'ef\'d4\'f2\'ca\'c7
+\f6  
+\f8\b \'c4\'da\'ba\'ac\'d7\'d3\'b1\'e4\'d2\'ec
+\f1\b0 \'a1\'a3
+\f0\fs36 \cf12 \cb13 \expnd0\expndtw0\kerning0
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf12 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \cb1 \kerning1\expnd0\expndtw0 \
+sed -n '
+\f2\fs24 \expnd0\expndtw0\kerning0
+2236
+\f0\fs36 \kerning1\expnd0\expndtw0 p' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv\
+#ENSG00000170634 chr2_54051001   2_54115837_A_T  0.287258        0.00190195319945069     exonic\
+#
+\f7\b \cf15 \cb13 \expnd0\expndtw0\kerning0
+ACYP2    {\field{\*\fldinst{HYPERLINK "https://asia.ensembl.org/Homo_sapiens/Location/View?db=core;g=ENSG00000170634;r=2:53970838-54305300"}}{\fldrslt 
+\f0\b0\fs25\fsmilli12800 \cf16 \ul \ulc16 Chromosome 2: 53,970,838-54,305,300}}
+\f0\b0\fs25\fsmilli12800 \cf14 \'a0
+\f7\b\fs36 \cf15 \
+
+\f0\b0 \cf0 \cb1 \kerning1\expnd0\expndtw0 \
+\
+#
+\f1 \'bc\'ec\'b2\'e9\'d2\'bb\'cf\'c2\'b8\'f8\'bb\'d4\'b8\'e7\'b5\'c4
+\f0 site
+\f1 \'d7\'a2\'ca\'cd\'b5\'c4\'bb\'f9\'d2\'f2\'d3\'d0\'c3\'bb\'d3\'d0\'b4\'ed
+\f0   47   59\
+#exonic_gene.tsv|less  \
+sed -n '47p' exonic_gene.tsv   \
+#ENSG00000170634 chr2_54051001    #
+\f1 \'d2\'b2\'c3\'bb\'b4\'ed
+\f0 \
+\
+\
+awk 'NR==FNR \{a[$1]=1; next\} ($1 in a) \{print $1\}' \\\
+<(cut -f1 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv) \\\
+<(cut -f1 exonic_gene.tsv) | sort -u | wc -l\
+#
+\f1 \'b7\'a2\'cf\'d6\'d6\'c7\'d5\'cf\'b5\'c4\'ca\'c7\'d1\'db\'be\'a6\'a3\'ac\'c6\'e4\'ca\'b5\'ca\'c7\'b9\'b2\'cf\'ed\'b5\'c4\'d6\'bb\'ca\'c7\'cb\'b3\'d0\'f2\'b2\'bb\'d2\'bb\'d1\'f9\'a1\'a3\'cb\'f9\'d2\'d4\'cf\'d6\'d4\'da\'bb\'f9\'d2\'f2\'c3\'fb\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'d3\'a6\'b8\'c3\'ca\'c7\'c3\'bb\'b4\'ed\'b5\'c4\'a3\'ac\'d0\'e8\'d2\'aa\'d4\'d9\'bf\'b4\'d2\'bb\'cf\'c2
+\f0 exonic 
+\f1 \'b5\'c4\'b6\'a8\'d2\'e5\'ce\'aa\'ca\'b2\'c3\'b4
+\f0 site 
+\f1 \'b5\'c4\'ca\'fd\'c1\'bf\'ca\'c7\'b2\'bb\'d2\'bb\'d1\'f9\'b5\'c4\'a1\'a3
+\f0 \
+\
+#ensg  
+\f1 \'d2\'d4\'bc\'b0
+\f0 gene name 
+\f1 \'b5\'c4\'cb\'f7\'d2\'fd\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv\
+#
+\f1 \'cc\'ed\'bc\'d3\'bb\'f9\'d2\'f2\'c3\'fb\'a3\'ac\'ba\'cd\'bb\'d4\'b8\'e7\'d6\'ae\'bc\'e4\'b5\'c4\'c1\'d0\'b1\'ed\'b6\'d4\'b1\'c8\'d2\'bb\'cf\'c2
+\f0 \
+awk -F'\\t' '\{sub(/\\..*/, "", $4); print\}' gene_coordinates.tsv > /gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv\
+\
+awk 'BEGIN \{OFS="\\t"\} FNR==NR \{if (FNR==1) \{FS=" "\} gene[$4]=$5; next\} \{FS="\\t"; print $0, ( $1 in gene ? gene[$1] : "NA")\}' \\\
+/gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_exonic_only.tsv > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_with_gene.tsv\
+\
+\
+\
+\
+\
+cut -f7 /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_with_gene.tsv | sort -u  #21\
+\
+ACYP2\
+CASTOR3P\
+CCNI\
+CPSF6\
+CYFIP2\
+ENSG00000256028\
+ENSG00000272822\
+GRIA4\
+GRIK2\
+HIF3A\
+KCNMA1\
+MED21\
+METTL6\
+NOVA1\
+PTPRZ1\
+SLC38A6\
+SON\
+SORBS1\
+SRP9\
+ZNF506\
+ZNF91\
+##############\
+#
+\f1 \'cf\'c8\'bf\'aa\'ca\'bc\'d3\'c3\'cf\'d6\'d3\'d0\'b5\'c4\'bb\'f9\'d2\'f2\'b1\'ed\'b8\'f1\'d7\'f6\'d0\'c5\'cf\'a2\'c6\'a5\'c5\'e4\'a3\'ac\'d6\'ae\'ba\'f3\'d4\'d9\'bd\'f8\'d0\'d0\'b2\'b9\'b3\'e4\'b0\'c8
+\f0 \
+#
+\f1 \'d0\'c5\'cf\'a2\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/site_anno\
+#
+\f1 \'b5\'da
+\f0 10
+\f1 \'c1\'d0\'a3\'ba
+\f0 exonic: 
+\f1 \'b1\'e4\'d2\'ec\'c7\'f8\'d3\'f2
+\f0  (Variant Region)
+\f1 \'a1\'a3
+\f0 #11
+\f1 \'c1\'d0
+\f0 EEF1AKMT2: 
+\f1 \'bb\'f9\'d2\'f2\'c3\'fb
+\f0  (Gene Name) 12
+\f1 \'c1\'d0
+\f0 : nonsynonymous: 
+\f1 \'b0\'b1\'bb\'f9\'cb\'e1\'b8\'c4\'b1\'e4\'c0\'e0\'d0\'cd
+\f0  (Amino Acid Change Type)#13
+\f1 \'c1\'d0\'ca\'c7\'cd\'bb\'b1\'e4\'d0\'c5\'cf\'a2
+\f0   14 15 
+\f1 \'c1\'d0\'ca\'c7\'d7\'aa\'c2\'bc\'b1\'be\'bb\'f2\'d5\'df\'b5\'b0\'b0\'d7\'d6\'ca\'b5\'c4\'d7\'a2\'ca\'cd\'d0\'c5\'cf\'a2
+\f0 \
+\
+#
+\f1 \'ca\'d7\'cf\'c8\'cc\'ed\'bc\'d3
+\f0  3
+\f1 \'a3\'ac
+\f0 4
+\f1 \'a3\'ac
+\f0 9
+\f1 \'a3\'ac
+\f0 11
+\f1 \'a3\'ac
+\f0 12
+\f1 \'a3\'ac
+\f0 13
+\f1 \'a3\'ac
+\f0 15
+\f1 \'c1\'d0
+\f0   22
+\f1 \'c1\'d0
+\f0  
+\f1 \'d7\'f6\'cb\'f7\'d2\'fd
+\f0 \
+#
+\f1 \'b3\'f5\'ca\'bc\'ce\'c4\'bc\'fe\'c2\'b7\'be\'b6\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_with_gene.tsv\
+#
+\f1 \'b2\'e2\'ca\'d4\'c3\'bf\'d2\'bb\'c1\'d0\'ca\'c7\'ca\'b2\'c3\'b4
+\f0 \
+awk -F'\\t' '\{print $22\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/site_anno| head -n 20\
+\
+awk 'BEGIN \{OFS="\\t"\} FNR==NR \{data[$NF] = $3"\\t"$4"\\t"$9"\\t"$11"\\t"$12"\\t"$13"\\t"$15; next\} \{print $0, ( $2 in data ? data[$2] : "NA\\tNA\\tNA\\tNA\\tNA\\tNA\\tNA")\}' \\\
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/site_anno \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/site_anno_with_gene.tsv > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/gene_10_3.tsv\
+\
+\
+#
+\f1 \'bc\'d3\'c9\'cf\'c1\'cb\'b7\'c7\'cd\'ac\'d2\'e5\'cd\'bb\'b1\'e4\'b5\'c8\'d0\'c5\'cf\'a2
+\f0 \
+##
+\f1 \'b4\'f3\'ce\'de\'d3\'ef\'ca\'c2\'bc\'fe
+\f0 \
+awk -F'\\t' '\{print NF\}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/site_anno | sort | uniq -c\
+  18003 22\
+     32 23\
+     28 24\
+     86 25\
+\
+#chr7_122047782 \
+grep "chr7_122047782" /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/site_anno \
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \cb17 ##
+\f1 \'cf\'d6\'d4\'da\'cc\'ed\'bc\'d3\'ca\'c7\'b7\'f1\'ca\'c7
+\f0  eqtl 
+\f1 \'d0\'c5\'cf\'a2
+\f0 \cb1 \
+#overlap  
+\f1 \'ce\'c4\'bc\'fe
+\f0 \
+ /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/pair_overlap.tsv\
+\
+ENSG00000306132_12_118432835_G_T\
+#
+\f1 \'c9\'cf\'d2\'bb\'b2\'bd\'bd\'e1\'b9\'fb\'ce\'c4\'bc\'fe
+\f0 \
+ /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/gene_10_3.tsv\
+\
+awk -F'\\t' '\
+    # 
+\f1 \'bd\'d7\'b6\'ce\'d2\'bb\'a3\'ba\'b6\'c1\'c8\'a1\'b2\'a2\'b4\'e6\'b4\'a2\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe\'b5\'c4\'d0\'c5\'cf\'a2
+\f0 \
+    FNR == NR \{\
+        map[$1] = $NF;\
+        next;\
+    \}\
+\
+    # 
+\f1 \'bd\'d7\'b6\'ce\'b6\'fe\'a3\'ba\'b4\'a6\'c0\'ed\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ac\'d6\'b4\'d0\'d0\'c1\'ac\'bd\'d3
+\f0 \
+    \{\
+        key = $1"_" $3;\
+        if (key in map) \{\
+            # 
+\f1 \'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'bd\'ab\'d0\'c5\'cf\'a2\'d7\'b7\'bc\'d3\'b5\'bd\'d0\'d0\'c4\'a9
+\f0 \
+            print $0, map[key];\
+        \} else \{\
+            # 
+\f1 \'ce\'b4\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'bf\'c9\'d2\'d4\'b8\'f9\'be\'dd\'d0\'e8\'d2\'aa\'b4\'a6\'c0\'ed\'a3\'ac\'d5\'e2\'c0\'ef\'b2\'bb\'d7\'b7\'bc\'d3\'c8\'ce\'ba\'ce\'d0\'c5\'cf\'a2
+\f0 \
+            print $0, "NA";\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/pair_overlap.tsv /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/gene_10_3.tsv > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/gene_final_10_3.tsv\
+\
+\cb18 #
+\f1 \'cc\'ed\'bc\'d3
+\f0  PPH4 
+\f1 \'b5\'c4\'d0\'c5\'cf\'a2
+\f0 \cb1 \
+#coloc 
+\f1 \'ce\'c4\'bc\'fe
+\f0   
+\f1 \'b0\'e6\'b1\'be\'a3\'ba
+\f0 hg19
+\f1 \'b5\'c4\'d2\'aa\'cf\'c8\'d7\'aa\'bb\'bb\'d2\'bb\'cf\'c2
+\f0 \
+grep  "chr10_14229576"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19    \
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/coloc/EAS_ShjeadCZ.pp.coloc.result \
+\
+#7661
+\f1 \'d0\'d0
+\f0   2172 
+\f1 \'d0\'d0\'a3\'ac\'c8\'ab\'d4\'da
+\f0 7661
+\f1 \'d6\'d0
+\f0 \
+awk 'FNR==NR\{a[$2]=1;next\}!($1 in a)' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19 /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/coloc/EAS_ShjeadCZ.pp.coloc.result\
+#19 to 38\
+awk -F'\\t' '\
+    # 
+\f1 \'b5\'da\'d2\'bb\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ac\'b9\'b9\'bd\'a8\'b2\'e9\'d5\'d2\'b1\'ed
+\f0 \
+    FNR == NR \{\
+        # 
+\f1 \'ca\'b9\'d3\'c3\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da\'b6\'fe\'c1\'d0\'d7\'f7\'ce\'aa
+\f0 key
+\f1 \'a3\'ac\'b5\'da\'d2\'bb\'c1\'d0\'d7\'f7\'ce\'aa
+\f0 value\
+        map[$2] = $1;\
+        next;\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ac\'d6\'b4\'d0\'d0\'cc\'e6\'bb\'bb
+\f0 \
+    \{\
+        # 
+\f1 \'bc\'ec\'b2\'e9\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'ca\'c7\'b7\'f1\'d4\'da\'b2\'e9\'d5\'d2\'b1\'ed\'d6\'d0
+\f0 \
+        if ($1 in map) \{\
+            # 
+\f1 \'c8\'e7\'b9\'fb\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'d3\'c3\'b2\'e9\'d5\'d2\'b1\'ed\'d6\'d0\'b5\'c4\'d6\'b5\'cc\'e6\'bb\'bb\'b5\'da\'d2\'bb\'c1\'d0
+\f0 \
+            $1 = map[$1];\
+        \}\
+        # 
+\f1 \'ce\'de\'c2\'db\'ca\'c7\'b7\'f1\'cc\'e6\'bb\'bb\'a3\'ac\'b6\'bc\'b4\'f2\'d3\'a1\'d5\'fb\'d0\'d0
+\f0 \
+        print;\
+    \}\
+' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19 /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/coloc/EAS_ShjeadCZ.pp.coloc.result >/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_edqtl.tsv\
+\
+chr1_155777673 \
+###########\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1 \cf0 \'c9\'cf\'d2\'bb\'b2\'bd\'b5\'c4\'bd\'e1\'b9\'fb\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/exonic/gene_final_10_3.tsv\
+\
+awk '\
+    # 
+\f1 \'b5\'da\'d2\'bb\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed
+\f0  gene_coordinates.stable_id.tsv\
+    FILENAME == "/gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv" \{\
+        FS=" ";\
+        map[$4] = $5;\
+        next;\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed
+\f0  egenes.txt\
+    FILENAME == "/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/egenes.txt" \{\
+        FS="\\t"; OFS="\\t";\
+        if ($1 in map) \{\
+            print $1, map[$1];\
+        \} else \{\
+            print $1, "NA";\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/egenes.txt > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/egene.tsv\
+\
+chr10_77637540\
+#####################################\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf18 #
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'b1\'ed\'b8\'f1
+\f0  \
+\cf5 #
+\f1 \'cc\'ed\'bc\'d3
+\f0  nominal  edQTL effctsize 
+\f1 \'b5\'c4\'d0\'c5\'cf\'a2\'a3\'ac\'cb\'f7\'d2\'fd\'b2\'bb\'c1\'cb
+\f0 \cf18 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 #
+\f1 \'ca\'c7\'b2\'bb\'ca\'c7
+\f0 egene\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/egenes.txt\
+\
+\
+awk '\
+    # 
+\f1 \'b5\'da\'d2\'bb\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe
+\f0  (gene_coordinates.stable_id.tsv)\
+    # 
+\f1 \'ca\'b9\'d3\'c3\'bf\'d5\'b8\'f1\'d7\'f7\'ce\'aa\'d7\'d6\'b6\'ce\'b7\'d6\'b8\'f4\'b7\'fb
+\f0 \
+    BEGIN \{FS=" "\}\
+    FNR == NR \{\
+        # 
+\f1 \'cb\'f7\'d2\'fd\'ca\'c7\'b5\'da\'cb\'c4\'c1\'d0\'a3\'ac\'d0\'e8\'d2\'aa\'ca\'e4\'b3\'f6\'b5\'c4\'ca\'c7\'b5\'da\'ce\'e5\'c1\'d0
+\f0 \
+        map[$4] = $5;\
+        next;\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe
+\f0  (egenes.txt)\
+    # 
+\f1 \'ca\'b9\'d3\'c3\'d6\'c6\'b1\'ed\'b7\'fb\'d7\'f7\'ce\'aa\'d7\'d6\'b6\'ce\'b7\'d6\'b8\'f4\'b7\'fb\'a3\'ac\'b2\'a2\'c9\'e8\'d6\'c3\'ca\'e4\'b3\'f6\'b7\'d6\'b8\'f4\'b7\'fb
+\f0 \
+    BEGIN \{FS="\\t"; OFS="\\t"\}\
+    \{\
+        # 
+\f1 \'bc\'ec\'b2\'e9\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'ca\'c7\'b7\'f1\'d4\'da\'b2\'e9\'d5\'d2\'b1\'ed\'d6\'d0
+\f0 \
+        if ($1 in map) \{\
+            # 
+\f1 \'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'b4\'f2\'d3\'a1\'b5\'da\'d2\'bb\'c1\'d0\'a3\'ac\'b2\'a2\'d7\'b7\'bc\'d3\'d0\'c2\'ca\'fd\'be\'dd
+\f0 \
+            print $1, map[$1];\
+        \} else \{\
+            # 
+\f1 \'c8\'e7\'b9\'fb\'ce\'b4\'d5\'d2\'b5\'bd\'a3\'ac\'b4\'f2\'d3\'a1\'b5\'da\'d2\'bb\'c1\'d0\'b2\'a2\'d7\'b7\'bc\'d3\'d2\'bb\'b8\'f6\'c4\'ac\'c8\'cf\'d6\'b5
+\f0 \
+            print $1, "NA";\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/egenes.txt >/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/egene.tsv\
+\
+\
+\
+\
+#
+\f1 \'d5\'e2\'b8\'f6\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'cb\'c6\'ba\'f5\'d3\'d0\'ce\'ca\'cc\'e2
+\f0 ,
+\f1 \'d3\'d0\'d0\'a9\'d0\'d0\'b2\'bb\'ca\'c7
+\f0  chr
+\f1 \'bf\'aa\'cd\'b7\'b5\'c4
+\f0 \
+\
+  grep "ENSG00000213920"   /gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv\
+  grep "ENSG00000213920"    /gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/egenes.txt\
+\
+#######################################33\
+\
+awk '\
+    # 
+\f1 \'b5\'da\'d2\'bb\'bd\'d7\'b6\'ce\'a3\'ba\'b4\'a6\'c0\'ed\'ce\'c4\'bc\'fe\'b2\'a2\'b9\'b9\'bd\'a8\'b2\'e9\'d5\'d2\'b1\'ed
+\f0 \
+    FNR == NR \{\
+        # 
+\f1 \'ca\'b9\'d3\'c3\'ce\'c4\'bc\'fe\'b5\'c4\'b5\'da\'d2\'bb\'c1\'d0\'d7\'f7\'ce\'aa\'bc\'fc\'a3\'ac\'b4\'e6\'b4\'a2\'d4\'da\'b9\'d8\'c1\'aa\'ca\'fd\'d7\'e9\'d6\'d0
+\f0 \
+        map[$1] = 1;\
+        next;\
+    \}\
+\
+    # 
+\f1 \'b5\'da\'b6\'fe\'bd\'d7\'b6\'ce\'a3\'ba\'b1\'e9\'c0\'fa\'ce\'c4\'bc\'fe\'a3\'ac\'bd\'f8\'d0\'d0\'c6\'a5\'c5\'e4\'ba\'cd\'ca\'e4\'b3\'f6
+\f0 \
+    \{\
+        # 
+\f1 \'bc\'ec\'b2\'e9\'b5\'b1\'c7\'b0\'d0\'d0\'b5\'c4\'b5\'da\'b6\'fe\'c1\'d0\'d6\'b5\'ca\'c7\'b7\'f1\'d4\'da\'b2\'e9\'d5\'d2\'b1\'ed\'d6\'d0
+\f0 \
+        if ($2 in map) \{\
+            # 
+\f1 \'c8\'e7\'b9\'fb\'d5\'d2\'b5\'bd\'c6\'a5\'c5\'e4\'a3\'ac\'b4\'f2\'d3\'a1\'d5\'fb\'d0\'d0\'b2\'a2\'d7\'b7\'bc\'d3
+\f0 \'93egene\'94\
+            print $0, "egene";\
+        \} else \{\
+            # 
+\f1 \'c8\'e7\'b9\'fb\'ce\'b4\'d5\'d2\'b5\'bd\'a3\'ac\'b4\'f2\'d3\'a1\'d5\'fb\'d0\'d0\'b2\'a2\'d7\'b7\'bc\'d3
+\f0 \'93no\'94\
+            print $0, "no";\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/coloc_gene.txt /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/coloc_gene.txt > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/coloc_gene_new.txt\
+\
+\
+######################################\
+\pard\pardeftab720\partightenfactor0
+\cf19 \cb7 UBE2D3     \'a0ENSG00000109332\cf0 \cb1 \
+\
+\
+awk -F'\\t' '\{ split($1,a,"_"); if(a[1]=="ENSG00000109332") print $0 \}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv\
+\
+\
+#
+\f1 \'b1\'a3\'b4\'e6\'a3\'ba
+\f0 \
+\
+# 
+\f10 1\uc0\u65039 \u8419 
+\f0  
+\f1 \'cf\'c8\'c9\'b8\'d1\'a1\'b2\'a2\'b7\'d6\'bf\'aa\'b5\'da\'d2\'bb\'c1\'d0\'a3\'a8\'d6\'bb\'b2\'f0\'b5\'da\'d2\'bb\'b8\'f6\'cf\'c2\'bb\'ae\'cf\'df\'a3\'a9\'a3\'ac\'b1\'a3\'b4\'e6\'d6\'f7\'bd\'e1\'b9\'fb
+\f0 \
+awk -F'\\t' 'BEGIN\{OFS="\\t"\} \
+\{\
+  split($1,a,"_")\
+  if (a[1]=="ENSG00000109332") \{\
+    sub("_","\\t",$1)\
+    print\
+  \}\
+\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/ENSG00000109332.tsv\
+\
+# 
+\f10 2\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'b6\'fe\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/ENSG00000109332.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/ENSG00000109332_col2_count.tsv\
+\
+# 
+\f10 3\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'cb\'c4\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$4]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/ENSG00000109332.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/ENSG00000109332_col4_count.tsv\
+\
+\
+##############################\
+redqtl:\
+\
+ENSG00000185774_chr4_21839509\
+\
+awk -F'\\t' '\{ split($1,a,"_"); if(a[1]=="ENSG00000109332") print $0 \}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_withkey.tsv \
+\
+\
+awk -F'\\t' 'BEGIN\{OFS="\\t"\} \
+\{\
+  split($1,a,"_")\
+  if (a[1]=="ENSG00000109332") \{\
+    sub("_","\\t",$1)\
+    print\
+  \}\
+\}'  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_withkey.tsv  \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332.tsv\
+\
+\
+#chr4_102810541        redsnp\
+#chr4_102811087     \
+\
+\
+awk -F' ' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332.tsv\\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332_edregion_count.tsv\
+\
+#####################################\
+
+\f1 \'c3\'bf\'b8\'f6
+\f0 edregion
+\f1 \'cb\'f9\'b0\'fc\'ba\'ac\'b5\'c4
+\f0 edsite\
+  \
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+\
+\
+grep "chr4_102810541"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+ chr4_102810541 chr4_102810582 chr4_102810583   3       42      0.0714286\
+grep "chr4_102811087"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+ chr4_102811087 chr4_102811099 chr4_102811264 chr4_102811230 chr4_102811234 chr4_102811251 chr4_102811263       7       176     0.0397727\
+\
+grep  "chr4_103731698"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19   \
+\
+grep  "chr4_103731698"  EAS_region_ShjeadCZ.pp.coloc.result\
+\
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb20 ##############################################################\
+\pard\pardeftab720\partightenfactor0
+\cf18 DGKI     ENSG00000157680\cf0 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb1 \
+awk -F'\\t' '\{ split($1,a,"_"); if(a[1]=="ENSG00000157680") print $0 \}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv\
+\
+\
+#
+\f1 \'b1\'a3\'b4\'e6\'a3\'ba
+\f0 \
+\
+# 
+\f10 1\uc0\u65039 \u8419 
+\f0  
+\f1 \'cf\'c8\'c9\'b8\'d1\'a1\'b2\'a2\'b7\'d6\'bf\'aa\'b5\'da\'d2\'bb\'c1\'d0\'a3\'a8\'d6\'bb\'b2\'f0\'b5\'da\'d2\'bb\'b8\'f6\'cf\'c2\'bb\'ae\'cf\'df\'a3\'a9\'a3\'ac\'b1\'a3\'b4\'e6\'d6\'f7\'bd\'e1\'b9\'fb
+\f0 \
+awk -F'\\t' 'BEGIN\{OFS="\\t"\} \
+\{\
+  split($1,a,"_")\
+  if (a[1]=="ENSG00000157680") \{\
+    sub("_","\\t",$1)\
+    print\
+  \}\
+\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680.tsv\
+\
+# 
+\f10 2\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'b6\'fe\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_col2_count.tsv\
+\
+# 
+\f10 3\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'cb\'c4\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$4]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_col4_count.tsv\
+\pard\pardeftab720\partightenfactor0
+\cf21 ###############################\
+#
+\f1 \'cc\'ed\'bc\'d3
+\f0 q 
+\f1 \'d6\'b5
+\f0 \cf0 \
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nopermute.all.signicifant\
+\
+awk -F'\\t' '\
+    NR==FNR \{\
+        key = $1"_"$8;        # 
+\f1 \'ce\'c4\'bc\'fe
+\f0 2
+\f1 \'b5\'c4\'c6\'a5\'c5\'e4\'bc\'fc\'a3\'ba\'b5\'da\'d2\'bb\'c1\'d0\'a3\'a8
+\f0 edsite
+\f1 \'a3\'a9
+\f0 _
+\f1 \'b5\'da\'b6\'fe\'c1\'d0\'a3\'a8
+\f0 SNP
+\f1 \'a3\'a9
+\f0 \
+        pval[key] = $(12);                 # 
+\f1 \'b1\'a3\'b4\'e6\'b5\'da
+\f0 12
+\f1 \'c1\'d0
+\f0  (p
+\f1 \'d6\'b5
+\f0 )\
+        qval[key] = $NF;                   # 
+\f1 \'b1\'a3\'b4\'e6\'d7\'ee\'ba\'f3\'d2\'bb\'c1\'d0
+\f0  (q
+\f1 \'d6\'b5
+\f0 )\
+        next;\
+    \}\
+    \{\
+        key = $4"_"$2;                     # 
+\f1 \'c4\'bf\'b1\'ea\'ce\'c4\'bc\'fe\'b5\'c4\'c6\'a5\'c5\'e4\'bc\'fc\'a3\'ba\'b5\'da\'cb\'c4\'c1\'d0
+\f0  + 
+\f1 \'b5\'da\'b6\'fe\'c1\'d0
+\f0 \
+        if (key in pval)\
+            print $0"\\t"pval[key]"\\t"qval[key];\
+        else\
+            print $0"\\tNA\\tNA";\
+    \}\
+' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/eqtl.nopermute.all.signicifant \\\
+  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680.tsv \\\
+  > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_with_pq.tsv\
+\
+\cf11 #############################
+\f1 \'bc\'d3\'c9\'cf\'d7\'a2\'ca\'cd
+\f0 \cf0 \
+#edsite 
+\f1 \'b5\'c4\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/guomh/all_result/anno/site_anno_region_fina_asian\
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf0 \'d2\'bb\'b9\'b2\'be\'cd\'cb\'c4\'b8\'f6
+\f0 \
+\
+
+\f1 \'b2\'bb\'d0\'b4\'bd\'c5\'b1\'be\'c1\'cb\'a3\'ba
+\f0 (
+\f1 \'b2\'bb\'d4\'da
+\f0 alu 
+\f1 \'d4\'aa\'bc\'fe\'c9\'cf
+\f0 )\
+grep "chr7_137383189"    /gpfs/hpc/home/chenchao/guomh/all_result/anno/site_anno_region_fina_asian\
+        chr7    137383189       T       C       -       A,R     NONREP  -       -/-     UTR3    DGKI    -       -       UTR3    DGKI    -       -       UTR3       DGKI    -       -       chr7_137383189\
+grep "chr7_137383190"    /gpfs/hpc/home/chenchao/guomh/all_result/anno/site_anno_region_fina_asian\
+        chr7    137383190       T       C       -       A,R,D   NONREP  -       -/-     UTR3    DGKI    -       -       UTR3    DGKI    -       -       UTR3       DGKI    -       -       chr7_137383190\
+chr7_137383191   A,R \
+chr7_137383192   A,R,D\
+
+\f1 \'d7\'dc\'d6\'ae\'a3\'ac\'d5\'e2\'cb\'c4\'b8\'f6
+\f0 site 
+\f1 \'b5\'c4\'d7\'a2\'ca\'cd\'b6\'bc\'ca\'c7
+\f0   
+\f1 \'b7\'c7
+\f0  ALU  .NONREP; UTR3  \
+\
+\
+| **A** | A-to-I
+\f1 \'a3\'a8\'bc\'b4
+\f0  A
+\f11 \uc0\u8594 
+\f0 G
+\f1 \'a3\'a9\'b1\'e0\'bc\'ad
+\f0                      | 
+\f1 \'d7\'ee\'b3\'a3\'bc\'fb\'b5\'c4
+\f0  RNA editing 
+\f1 \'c0\'e0\'d0\'cd\'a3\'ac\'d3\'c9
+\f0  ADAR 
+\f1 \'c3\'b8\'b4\'df\'bb\'af
+\f0                      |\
+| **R** | Recurrent site
+\f1 \'a3\'a8\'d6\'d8\'b8\'b4\'b3\'f6\'cf\'d6
+\f0 /
+\f1 \'b6\'e0\'d1\'f9\'b1\'be\'b9\'b2\'cf\'ed\'a3\'a9
+\f0           | 
+\f1 \'b1\'ed\'ca\'be\'b8\'c3\'b1\'e0\'bc\'ad\'ce\'bb\'b5\'e3\'d4\'da\'b6\'e0\'b8\'f6\'b8\'f6\'cc\'e5\'bb\'f2\'d1\'f9\'b1\'be\'d6\'d0\'b6\'bc\'bc\'ec\'b2\'e2\'b5\'bd\'a3\'ac\'be\'df\'d3\'d0\'bd\'cf\'b8\'df\'bf\'c9\'bf\'bf\'d0\'d4
+\f0                        \
+| **D** | Database-supported / validated site | 
+\f1 \'b1\'ed\'ca\'be\'b8\'c3\'ce\'bb\'b5\'e3\'d4\'da\'d2\'d1\'d3\'d0
+\f0  RNA editing 
+\f1 \'ca\'fd\'be\'dd\'bf\'e2\'d6\'d0\'b1\'bb\'ca\'d5\'c2\'bc\'a3\'a8\'c8\'e7
+\f0  RADAR 
+\f1 \'bb\'f2
+\f0  REDIportal
+\f1 \'a3\'a9
+\f0  |\
+\
+#edsnp
+\f1 \'b5\'c4\'d7\'a2\'ca\'cd\'a3\'ba
+\f0 \
+\
+#
+\f1 \'ca\'d7\'cf\'c8\'bf\'b4\'d2\'bb\'cf\'c2\'d3\'d0\'c3\'bb\'d3\'d0\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'a3\'ac\'d3\'a6\'b8\'c3\'ca\'c7\'d3\'d0\'b5\'c4\'a3\'ac\'d3\'a6\'b8\'c3\'ca\'c7\'d5\'e2\'b8\'f6
+\f0 \
+/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/final.hg38_multianno.csv\
+#
+\f1 \'b8\'f1\'ca\'bd\'c8\'e7\'cf\'c2\'a3\'ba
+\f0 \
+Chr,Start,End,Ref,Alt,Func.refGene,Gene.refGene,GeneDetail.refGene,ExonicFunc.refGene,AAChange.refGene\
+10,100145462,100145462,G,A,"intergenic","CPN1;ERLIN1","dist=63593;dist=4632",NA,NA\
+#
+\f1 \'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_with_pq.tsv\
+\
+#
+\f1 \'b8\'f1\'ca\'bd\'c8\'e7\'cf\'c2\'a3\'ba
+\f0 \
+ENSG00000157680 7_137355720_A_G\
+#
+\f1 \'bc\'ec\'b2\'e9\'d2\'bb\'cf\'c2\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'b5\'c4\'b0\'e6\'b1\'be
+\f0 \
+grep  "chr10_100145462"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19    \
+grep  "10_100145462"  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_with_pq.tsv\
+\
+grep "137333583"   /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/final.hg38_multianno.csv\
+#
+\f1 \'c6\'a5\'c5\'e4\'c9\'cf\'c1\'cb\'a3\'ac\'cb\'b5\'c3\'f7\'ca\'c7
+\f0  hg38
+\f1 \'b5\'c4
+\f0   
+\f1 \'ca\'c7\'c6\'a5\'c5\'e4\'b4\'fa\'c2\'eb\'b5\'c4
+\f0 \
+#
+\f1 \'d2\'bb\'d6\'b1\'d3\'d0
+\f0 bug 
+\f1 \'a3\'ac\'d6\'b1\'bd\'d3\'d2\'bb\'b2\'bd\'b2\'bd\'b7\'d6\'bf\'aa\'d7\'f6\'b0\'c9
+\f0 \
+awk -F ',' 'OFS="\\t" \{ print $1"_"$2"_"$4"_"$5, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 \}' /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/final.hg38_multianno.csv > /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edsnp_anno.txt\
+#
+\f1 \'c4\'da\'c1\'ac\'bd\'d3\'a3\'ac\'b1\'d8\'d0\'eb\'ca\'c7\'d7\'d3\'bc\'af
+\f0 \
+awk '\
+    BEGIN \{ FS = OFS = "\\t" \}\
+    # 
+\f1 \'cf\'c8\'b6\'c1\'c8\'a1
+\f0  edsnp_anno.txt
+\f1 \'a3\'a8\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'a9\'a3\'ac
+\f0 \
+    # 
+\f1 \'d3\'c3\'b5\'da
+\f0 1
+\f1 \'c1\'d0\'d7\'f6\'bc\'fc\'a3\'ac\'c8\'a1\'b3\'f6
+\f0 7-11
+\f1 \'c1\'d0\'d7\'f7\'ce\'aa\'d6\'b5
+\f0 \
+    FNR == NR \{\
+        data[$1] = $7 FS $8 FS $9 FS $10 FS $11\
+        next\
+    \}\
+    # 
+\f1 \'b4\'a6\'c0\'ed
+\f0  ENSG00000157680_with_pq.tsv
+\f1 \'a3\'a8\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'a9
+\f0 \
+    # 
+\f1 \'d3\'c3\'b5\'da
+\f0 2
+\f1 \'c1\'d0\'c6\'a5\'c5\'e4
+\f0  edsnp_anno.txt 
+\f1 \'b5\'c4\'b5\'da
+\f0 1
+\f1 \'c1\'d0
+\f0 \
+    \{\
+        if ($2 in data) \{\
+            print $0, data[$2]\
+        \} else \{\
+            print $0\
+        \}\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edsnp_anno.txt \\\
+   /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_with_pq.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/DGKI/ENSG00000157680_with_pq_anno.tsv\
+\
+\
+\
+7_137333583dd\
+7_137335929\
+7_137336430\
+7_137345599\
+7_137347428\
+\
+\pard\pardeftab720\partightenfactor0
+\cf11 ##############################\
+redqtl: ENSG00000157680  
+\f1 \'d5\'e2\'d2\'bb\'bf\'e9\'d3\'a6\'b8\'c3\'c3\'bb\'d3\'d0\'cb\'f9\'d2\'d4\'b2\'bb\'d3\'c3\'d7\'f6
+\f0 \cf0 \
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+#
+\f1 \'c3\'bf\'b8\'f6
+\f0 region 
+\f1 \'d3\'d0\'c4\'c4\'d0\'a9
+\f0 site  \
+#redqtl\
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/eqtl.nopermute.all.signicifant\
+\
+#
+\f1 \'cb\'f7\'d2\'fd\'ce\'c4\'bc\'fe
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv\
+grep  "ENSG00000157680"   /gpfs/hpc/home/chenchao/mayinuo/hg38/gene_coordinates.stable_id.tsv\
+
+\f7\b \cf22 #chr7 137381037 137847092 ENSG00000157680 DGK\cf0 I
+\f0\b0 \
+#chr7_131093526   \
+#
+\f1 \'d7\'ee\'bd\'fc\'b5\'c4\'ca\'c7
+\f0   chr7_131422279
+\f1 \'c1\'cb
+\f0  \
+awk -F'\\t' '\
+\{\
+    gsub(/_ld$/, "", $1);                     # 
+\f1 \'c8\'a5\'b5\'f4\'b5\'da\'d2\'bb\'c1\'d0\'c4\'a9\'ce\'b2\'b5\'c4
+\f0  "_ld"\
+    split($1, a, "_");                        # 
+\f1 \'b0\'b4
+\f0  "_" 
+\f1 \'b2\'f0\'b7\'d6\'b3\'f6
+\f0  chr 
+\f1 \'ba\'cd
+\f0  pos\
+    chr = a[1];\
+    pos = a[2];\
+    if (chr == "chr7" && pos >= 107070000  && pos <= 137847092)\
+        print $0;\
+\}' /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/eqtl.nopermute.all.signicifant\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332.tsv\
+###
+\f1 \'b7\'a2\'cf\'d6\'ca\'c7\'d6\'b1\'bd\'d3\'c3\'bb\'d5\'e2\'b8\'f6
+\f0 region  13
+\f1 \'bf\'aa\'cd\'b7\'b5\'c4\'d6\'bb\'d3\'d0
+\f0 130
+\f1 \'ba\'cd
+\f0 131
+\f1 \'bf\'aa\'cd\'b7\'b5\'c4\'a3\'ac\'ba\'f3\'d0\'f8\'b5\'c4
+\f0 800
+\f1 \'cd\'f2
+\f0 bp 
+\f1 \'b6\'bc\'c3\'bb\'d3\'d0
+\f0 region\
+grep      chr7_137381037     /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+grep      chr7_13   /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+grep      chr7_12   /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+#
+\f1 \'c3\'bb\'d3\'d0
+\f0 redqtl 
+\f1 \'d0\'c5\'ba\'c5
+\f0 \
+#chr4_102810541        redsnp\
+#chr4_102811087     \
+\
+\
+awk -F' ' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332.tsv\\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/red_ENSG00000109332_edregion_count.tsv\
+\
+\cf11 #####################################\
+
+\f1 #\'c3\'bf\'b8\'f6
+\f0 edregion
+\f1 \'cb\'f9\'b0\'fc\'ba\'ac\'b5\'c4
+\f0 edsite\cf0 \
+  \
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+\
+grep "chr4_102810541"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+ chr4_102810541 chr4_102810582 chr4_102810583   3       42      0.0714286\
+grep "chr4_102811087"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+ chr4_102811087 chr4_102811099 chr4_102811264 chr4_102811230 chr4_102811234 chr4_102811251 chr4_102811263       7       176     0.0397727\
+\
+grep  "chr4_103731698"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19   \
+\
+grep  "chr4_103731698"  EAS_region_ShjeadCZ.pp.coloc.result\
+\
+\pard\pardeftab720\partightenfactor0
+
+\f7\b \cf0 \cb23 ##############################################################\
+MFSD13A    ENSG00000138111
+\f0\b0 \cb1 \
+\
+awk -F'\\t' '\{ split($1,a,"_"); if(a[1]=="ENSG00000138111") print $0 \}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv\
+\
+\
+#
+\f1 \'b1\'a3\'b4\'e6\'a3\'ba
+\f0 \
+\
+# 
+\f10 1\uc0\u65039 \u8419 
+\f0  
+\f1 \'cf\'c8\'c9\'b8\'d1\'a1\'b2\'a2\'b7\'d6\'bf\'aa\'b5\'da\'d2\'bb\'c1\'d0\'a3\'a8\'d6\'bb\'b2\'f0\'b5\'da\'d2\'bb\'b8\'f6\'cf\'c2\'bb\'ae\'cf\'df\'a3\'a9\'a3\'ac\'b1\'a3\'b4\'e6\'d6\'f7\'bd\'e1\'b9\'fb
+\f0 \
+awk -F'\\t' 'BEGIN\{OFS="\\t"\} \
+\{\
+  split($1,a,"_")\
+  if (a[1]=="ENSG00000138111") \{\
+    sub("_","\\t",$1)\
+    print\
+  \}\
+\}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/edQTL/VSeQTL/hg38/new/edqtl_key_beta_edsite.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/ENSG00000138111.tsv\
+\
+# 
+\f10 2\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'b6\'fe\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/ENSG00000138111.tsv\\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/ENSG00000138111.tsv_col2_count.tsv\
+\
+# 
+\f10 3\uc0\u65039 \u8419 
+\f0  
+\f1 \'cd\'b3\'bc\'c6\'b5\'da\'cb\'c4\'c1\'d0\'a3\'a8\'b7\'c7\'d6\'d8\'b8\'b4\'d6\'b5
+\f0  + 
+\f1 \'bc\'c6\'ca\'fd\'a3\'a9
+\f0 \
+awk -F'\\t' '\{count[$4]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/ENSG00000138111.tsv \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/ENSG00000138111.tsv_col4_count.tsv\
+\
+\
+\
+##############################\
+redqtl:\
+\
+\
+Query	hg19	hg38\
+chr7-138334856	chr7-138334856	chr7-138650111\
+\
+\
+\
+chr10_104236014_ld   (hg19)       chr10_102476257(hg38)\
+
+\fs24 \cf24 grep  "chr7_131081480"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19  
+\fs36 \cf0  \
+\
+\
+\
+ grep "chr10_104236014"    /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_withkey.tsv \
+ grep "chr10_104236014_ld"    /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/edQTL/coloc/EAS_region_ShjeadCZ.pp.coloc.result\
+\
+\
+\
+ \
+awk -F'\\t' '\{ split($1,a,"_"); if(a[1]=="ENSG00000138111") print $0 \}' /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_withkey.tsv \
+\
+\
+awk -F'\\t' 'BEGIN\{OFS="\\t"\} \
+\{\
+  split($1,a,"_")\
+  if (a[1]=="ENSG00000138111") \{\
+    sub("_","\\t",$1)\
+    print\
+  \}\
+\}'  /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/edqtl_withkey.tsv  \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/red_ENSG00000138111.tsv\
+\
+\
+#chr4_102810541        redsnp\
+#chr4_102811087     \
+\
+\
+awk -F' ' '\{count[$2]++\} END\{for(i in count) print i, count[i]\}' OFS="\\t" \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/red_ENSG00000138111.tsv\\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/gene/coloc_gene/MFSD13A/red_ENSG00000138111_edregion_count.tsv\
+\
+#####################################\
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf0 \'c3\'bf\'b8\'f6
+\f0 edregion
+\f1 \'cb\'f9\'b0\'fc\'ba\'ac\'b5\'c4
+\f0 edsite\
+  \
+/gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+\
+grep "chr4_102810541"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+\
+ chr4_102810541 chr4_102810582 chr4_102810583   3       42      0.0714286\
+grep "chr4_102811087"  /gpfs/hpc/home/chenchao/guomh/all_result/region_QTL/Asian/region.anno\
+ chr4_102811087 chr4_102811099 chr4_102811264 chr4_102811230 chr4_102811234 chr4_102811251 chr4_102811263       7       176     0.0397727\
+\
+grep  "chr4_103731698"  /gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL/hg19/condi_site_38to19   \
+\
+grep  "chr4_103731698"  EAS_region_ShjeadCZ.pp.coloc.result\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+}

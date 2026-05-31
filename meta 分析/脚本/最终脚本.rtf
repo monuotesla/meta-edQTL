@@ -1,0 +1,228 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww22040\viewh13920\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #!/bin/bash\
+\
+# --- 1. 
+\f1 \'c9\'e8\'d6\'c3\'c4\'e3\'b5\'c4\'ce\'c4\'bc\'fe\'ba\'cd\'c4\'bf\'c2\'bc\'c2\'b7\'be\'b6
+\f0  ---\
+EAS_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/edqtl_nominal_EAS_3.txt"\
+EUR_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/edqtl_nominal_EUR_4_hg38.txt"\
+\
+# --- 2. 
+\f1 \'c9\'e8\'d6\'c3\'c4\'e3\'b5\'c4\'d1\'f9\'b1\'be\'c1\'bf
+\f0  (N) ---\
+N_EAS=546\
+N_EUR=429  #\
+\
+# --- 3. 
+\f1 \'c9\'e8\'d6\'c3\'b9\'a4\'d7\'f7\'c4\'bf\'c2\'bc
+\f0  ---\
+# (
+\f1 \'c8\'b7\'b1\'a3\'c4\'e3\'d3\'d0\'d5\'e2\'d0\'a9\'c4\'bf\'c2\'bc\'b5\'c4\'d0\'b4\'c8\'eb\'c8\'a8\'cf\'de
+\f0 )\
+BASE_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl"\
+TEMP_DIR="$BASE_DIR/metal_temp"\
+OUTPUT_DIR="$BASE_DIR/metal_results_hg38"\
+\
+# --- 4. 
+\f1 \'b4\'b4\'bd\'a8\'c4\'bf\'c2\'bc
+\f0  (
+\f1 \'c8\'e7\'b9\'fb\'cb\'fc\'c3\'c7\'bb\'b9\'b2\'bb\'b4\'e6\'d4\'da
+\f0 ) ---\
+mkdir -p "$TEMP_DIR"\
+mkdir -p "$OUTPUT_DIR"\
+\
+echo "=== Meta-analysis V1.0 Start ==="\
+echo "EAS File: $EAS_FILE (N=$N_EAS)"\
+echo "EUR File: $EUR_FILE (N=$N_EUR)"\
+echo "Temp Dir: $TEMP_DIR"\
+echo "Out Dir:  $OUTPUT_DIR"\
+echo "-----------------------------------"\
+\
+# --- 5. 
+\f1 \'c9\'fa\'b3\'c9\'ce\'a8\'d2\'bb\'b5\'c4
+\f0  edSite 
+\f1 \'c1\'d0\'b1\'ed
+\f0  (
+\f1 \'b4\'d3\'b5\'da
+\f0 1
+\f1 \'c1\'d0\'bb\'f1\'c8\'a1
+\f0 ) ---\
+# (
+\f1 \'b4\'d3\'c1\'bd\'b8\'f6\'ce\'c4\'bc\'fe\'d6\'d0\'ba\'cf\'b2\'a2\'bb\'f1\'c8\'a1\'cb\'f9\'d3\'d0\'ce\'a8\'d2\'bb\'b5\'c4
+\f0  edSite ID)\
+SITES_LIST_FILE="$TEMP_DIR/unique_edsites_hg38.txt"\
+echo "Generating unique edSite list..."\
+awk -F'\\t' '\{print $1\}' "$EAS_FILE" "$EUR_FILE" | sort -u > "$SITES_LIST_FILE"\
+echo "Found $(wc -l < $SITES_LIST_FILE) unique edSites to process."\
+\
+# --- 6. 
+\f1 \'bf\'aa\'ca\'bc\'d1\'ad\'bb\'b7
+\f0  ---\
+# (
+\f1 \'d6\'f0\'d0\'d0\'b6\'c1\'c8\'a1
+\f0  edSite 
+\f1 \'c1\'d0\'b1\'ed
+\f0 )\
+while read -r site; do\
+    # 
+\f1 \'bc\'ec\'b2\'e9
+\f0  $site 
+\f1 \'ca\'c7\'b7\'f1\'ce\'aa\'bf\'d5
+\f0 \
+    if [ -z "$site" ]; then\
+        continue\
+    fi\
+\
+    echo "Processing edSite: $site"\
+\
+    # --- 6a. 
+\f1 \'b6\'a8\'d2\'e5\'b4\'cb\'d1\'ad\'bb\'b7\'b5\'c4\'c1\'d9\'ca\'b1\'ce\'c4\'bc\'fe
+\f0  ---\
+    EAS_TMP="$TEMP_DIR/$\{site\}_eas.tmp"\
+    EUR_TMP="$TEMP_DIR/$\{site\}_eur.tmp"\
+    METAL_SCRIPT="$TEMP_DIR/$\{site\}_metal_script.txt"\
+\
+    # --- 6b. 
+\f1 \'d3\'c3
+\f0  awk 
+\f1 \'cc\'e1\'c8\'a1\'b4\'cb
+\f0  edSite 
+\f1 \'b5\'c4\'cb\'f9\'d3\'d0
+\f0  SNP 
+\f1 \'ca\'fd\'be\'dd
+\f0  (
+\f1 \'b1\'c8
+\f0  grep 
+\f1 \'b8\'fc\'b0\'b2\'c8\'ab
+\f0 ) ---\
+    #    (
+\f1 \'d6\'bb\'cc\'e1\'c8\'a1
+\f0  $1 == "site" 
+\f1 \'b5\'c4\'d0\'d0
+\f0 )\
+    awk -F'\\t' -v site="$site" '$1 == site' "$EAS_FILE" > "$EAS_TMP"\
+    awk -F'\\t' -v site="$site" '$1 == site' "$EUR_FILE" > "$EUR_TMP"\
+\
+    # --- 6c. 
+\f1 \'c9\'fa\'b3\'c9\'b4\'cb
+\f0  edSite 
+\f1 \'b5\'c4
+\f0  METAL 
+\f1 \'bd\'c5\'b1\'be
+\f0  ---\
+    #    (
+\f1 \'ce\'d2\'c3\'c7\'ca\'b9\'d3\'c3
+\f0  CUSTOMVARIABLE 
+\f1 \'c0\'b4\'b6\'a8\'d2\'e5\'c1\'d0\'ba\'c5\'a3\'ac\'d2\'f2\'ce\'aa\'c3\'bb\'d3\'d0\'b1\'ed\'cd\'b7
+\f0 )\
+    cat > "$METAL_SCRIPT" << EOF\
+#\
+# METAL SCRIPT FOR: $site\
+#\
+\
+# --- 
+\f1 \'b9\'d8\'bc\'fc\'a3\'ba\'b6\'a8\'d2\'e5\'ce\'d2\'c3\'c7\'b5\'c4\'c1\'d0\'b1\'e4\'c1\'bf
+\f0  (
+\f1 \'d2\'f2\'ce\'aa\'c3\'bb\'d3\'d0\'b1\'ed\'cd\'b7
+\f0 ) ---\
+CUSTOMVARIABLE PVAL_COL COLUMN_12\
+CUSTOMVARIABLE SE_COL COLUMN_13\
+CUSTOMVARIABLE BETA_COL COLUMN_14\
+CUSTOMVARIABLE FREQ_COL COLUMN_15\
+CUSTOMVARIABLE MARKER_COL COLUMN_17\
+CUSTOMVARIABLE A1_COL COLUMN_18\
+CUSTOMVARIABLE A2_COL COLUMN_19\
+\
+# --- 
+\f1 \'d1\'a1\'d4\'f1\'b7\'bd\'b0\'b8\'a3\'ba\'c4\'e6\'b7\'bd\'b2\'ee\'bc\'d3\'c8\'a8
+\f0  (BETA/SE) ---\
+SCHEME STDERR\
+AVERAGEFREQ ON\
+MINMAXFREQ ON\
+\
+# --- 
+\f1 \'b8\'e6\'cb\'df
+\f0  METAL 
+\f1 \'c1\'d0\'b5\'c4\'ba\'ac\'d2\'e5
+\f0  ---\
+MARKER     MARKER_COL\
+ALLELE     A1_COL A2_COL\
+EFFECT     BETA_COL\
+STDERR     SE_COL\
+PVALUE     PVAL_COL\
+FREQ       FREQ_COL\
+\
+# --- 
+\f1 \'b4\'a6\'c0\'ed
+\f0  EAS 
+\f1 \'ce\'c4\'bc\'fe
+\f0  ---\
+# (
+\f1 \'ce\'aa\'d5\'e2\'b8\'f6\'ce\'c4\'bc\'fe\'c9\'e8\'d6\'c3\'c4\'ac\'c8\'cf\'d1\'f9\'b1\'be\'c1\'bf
+\f0  N)\
+DEFAULT    $N_EAS\
+PROCESS    "$EAS_TMP"\
+\
+# --- 
+\f1 \'b4\'a6\'c0\'ed
+\f0  EUR 
+\f1 \'ce\'c4\'bc\'fe
+\f0  ---\
+# (
+\f1 \'ce\'aa\'d5\'e2\'b8\'f6\'ce\'c4\'bc\'fe\'c9\'e8\'d6\'c3\'c4\'ac\'c8\'cf\'d1\'f9\'b1\'be\'c1\'bf
+\f0  N)\
+DEFAULT    $N_EUR\
+PROCESS    "$EUR_TMP"\
+\
+# --- 
+\f1 \'b6\'a8\'d2\'e5\'ca\'e4\'b3\'f6\'ce\'c4\'bc\'fe
+\f0  ---\
+# (
+\f1 \'d7\'a2\'d2\'e2\'a3\'ba\'ce\'c4\'bc\'fe\'c3\'fb\'d6\'d0\'b0\'fc\'ba\'ac
+\f0  $site)\
+OUTFILE    "$OUTPUT_DIR/meta_$\{site\}_" .tbl\
+\
+# --- 
+\f1 \'d4\'cb\'d0\'d0\'b7\'d6\'ce\'f6\'b2\'a2\'bc\'c6\'cb\'e3\'d2\'ec\'d6\'ca\'d0\'d4
+\f0  ---\
+ANALYZE HETEROGENEITY\
+\
+# --- 
+\f1 \'cd\'cb\'b3\'f6
+\f0  ---\
+QUIT\
+EOF\
+\
+    # --- 6d. 
+\f1 \'d4\'cb\'d0\'d0
+\f0  METAL ---\
+    metal "$METAL_SCRIPT"\
+\
+done < "$SITES_LIST_FILE" # 
+\f1 \'bd\'ab
+\f0  edSite 
+\f1 \'c1\'d0\'b1\'ed
+\f0  "
+\f1 \'ce\'b9
+\f0 " 
+\f1 \'b8\'f8
+\f0  while 
+\f1 \'d1\'ad\'bb\'b7
+\f0 \
+\
+# --- 7. (
+\f1 \'bf\'c9\'d1\'a1
+\f0 ) 
+\f1 \'c7\'e5\'c0\'ed\'c1\'d9\'ca\'b1\'ce\'c4\'bc\'fe
+\f0  ---\
+# rm -r "$TEMP_DIR"\
+\
+echo "-----------------------------------"\
+echo "All METAL jobs complete."\
+echo "Results are in: $OUTPUT_DIR"}

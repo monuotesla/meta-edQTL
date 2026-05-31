@@ -1,0 +1,551 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;\f2\fnil\fcharset0 AppleColorEmoji;
+}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww23360\viewh15380\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 \
+/zs32/home/chan/software/R-4.0.2/bin/R\
+library(snpStats)\
+library(BiocManager)\
+library(coloc)\
+library(reshape2)\
+\
+\
+#
+\f1 \'c2\'b7\'be\'b6\'d3\'d0\'ce\'ca\'cc\'e2
+\f0 \
+/vg_sklmgdata_hw_01/data/gmh/RNA-editing/Rediknown/Asian/eQTL/hg19/eqtl.conditional.chrall_sig\
+194952\
+/vg_sklmgdata_hw_01/data/gmh/RNA-editing/Rediknown/Asian/eQTL/coloc/eqtl.conditional.chrall_sig_hg19_fina \
+194736\
+/vg_sklmgdata_hw_01/data/gmh/RNA-editing/Rediknown/Asian/eQTL/hg19/eqtl.nopermute.all.signicifant_hg19_fina\
+503961\
+\
+setwd("/zs32/home/ynuoma/edQTL/coloc/EAS/scz")\
+eqtl <- read.table(file="/vg_sklmgdata_hw_01/data/gmh/RNA-editing/Rediknown/Asian/eQTL/coloc/eqtl.conditional.chrall_sig_hg19_fina", as.is=T);\
+head(eqtl)\
+eqtl$eSNP <- eqtl$V8\
+eqtl$p.value <- eqtl$V19\
+eqtl$eGene <- eqtl$V1      #
+\f1 \'b1\'ed\'d0\'cd
+\f0 \
+\
+gwas <- read.table(file="/mnt/NAS-PD/shareData/brain_eQTL/integration/GWAS_summary/EAS/EAS_gwas", header=T); head(gwas)\
+#gwas$SNP <- paste(gwas$CHR,gwas$BP,gwas$A1,gwas$A2,sep="_")\
+gwas$maf <- ifelse(gwas$FRQ_A_22778>0.5,1-gwas$F \uc0\u937 RQ_A_22778,gwas$FRQ_A_22778)\
+\
+input <- merge(eqtl, gwas, by.x = "eSNP",by.y ="CHR_BP_A1_A2", all=FALSE, suffixes=c("_eqtl","gwas"))\
+head(input)\
+dim(input)\
+#[1] 183674     32\
+\
+res0 <- matrix(NA,ncol=6,nrow=length(unique(input$eGene))); res0 <- as.data.frame(res0)\
+rownames(res0) <- unique(input$eGene)\
+\
+for (i in (unique(input$eGene)))\
+\{\
+result <- coloc.abf(dataset1=list(pvalues=input[input$eGene==i,]$P, type="cc",s=0.39, N=58140),dataset2=list(pvalues=input[input$eGene==i,]$p.value, type="quant", N=454), MAF=input[input$eGene==i,]$maf)\
+#res0[i,] <- result$result\
+res0[i,] <- as.numeric(result$summary)\
+\}\
+\
+nrow(res0)  #97   2172  6648   1274  2171\
+colnames(res0)<-c("nsnps", "PP.H0.abf", "PP.H1.abf", "PP.H2.abf", "PP.H3.abf", "PP.H4.abf")\
+\
+write.table(res0,file="EAS_ShjeadCZ.pp.coloc.result",sep="\\t",row.names=T,quote=F,col.names=NA)\
+\
+res0$PP.H4.abf <- as.numeric(as.character(res0$PP.H4.abf))\
+sig_cutoff <- 0.75\
+sig_summary <- res0[which(res0$PP.H4.abf > sig_cutoff), ]\
+write.table(sig_summary, file="EAS_ShjeadCZ.pp.coloc.sig_075.summary.txt", \
+            sep="\\t", quote=F, row.names=T, col.names=NA)\
+\
+# =======================================================\
+# 2. 
+\f1 \'d1\'ad\'bb\'b7\'cc\'e1\'c8\'a1
+\f0  SNP 
+\f1 \'cf\'ea\'c7\'e9\'b2\'a2\'b5\'a5\'b6\'c0\'b1\'a3\'b4\'e6
+\f0 \
+# =======================================================\
+\
+# 
+\f1 \'bb\'f1\'c8\'a1\'cf\'d4\'d6\'f8\'bb\'f9\'d2\'f2\'c1\'d0\'b1\'ed
+\f0 \
+sig_genes_list <- rownames(sig_summary)\
+\
+# 
+\f1 \'b4\'b4\'bd\'a8\'d2\'bb\'b8\'f6\'d7\'a8\'c3\'c5\'b4\'e6\'b7\'c5\'cf\'ea\'cf\'b8\'bd\'e1\'b9\'fb\'b5\'c4\'ce\'c4\'bc\'fe\'bc\'d0\'a3\'ac\'b1\'a3\'b3\'d6\'c4\'bf\'c2\'bc\'d5\'fb\'bd\'e0
+\f0 \
+dir.create("Top_Coloc_Results", showWarnings = FALSE)\
+\
+if(length(sig_genes_list) > 0) \{\
+  \
+  cat("Processing individual gene files...\\n")\
+  \
+  for(gene in sig_genes_list) \{\
+    \
+    # 
+\f1 \'cc\'e1\'c8\'a1\'d7\'d3\'bc\'af
+\f0 \
+    sub_data <- input[input$eGene == gene, ]\
+    sub_data <- na.omit(sub_data)\
+    \
+    if(nrow(sub_data) > 0) \{\
+      \
+      # --- 
+\f1 \'b9\'d8\'bc\'fc\'d0\'de\'b8\'c4\'a3\'ba\'d4\'cb\'d0\'d0
+\f0  coloc 
+\f1 \'c7\'b0\'cf\'c8\'c8\'b7\'b1\'a3
+\f0  SNP ID 
+\f1 \'ca\'c7\'d0\'d0\'c3\'fb
+\f0  ---\
+      # 
+\f1 \'d5\'e2\'d1\'f9
+\f0  coloc 
+\f1 \'bd\'e1\'b9\'fb\'c0\'ef\'b5\'c4
+\f0  'snp' 
+\f1 \'c1\'d0\'be\'cd\'bb\'e1\'d6\'b1\'bd\'d3\'ca\'b9\'d3\'c3\'d5\'e2\'b8\'f6
+\f0  ID
+\f1 \'a3\'ac\'b6\'f8\'b2\'bb\'ca\'c7
+\f0  SNP.1, SNP.2\
+      # 
+\f1 \'bc\'d9\'c9\'e8
+\f0  sub_data$eSNP 
+\f1 \'ca\'c7\'c4\'e3\'cf\'eb\'d2\'aa\'b5\'c4\'be\'df\'cc\'e5
+\f0  SNP 
+\f1 \'b1\'e0\'ba\'c5
+\f0 \
+      dataset1_list <- list(pvalues=sub_data$P, type="cc", s=0.39, N=58140, snp=sub_data$eSNP)\
+      dataset2_list <- list(pvalues=sub_data$p.value, type="quant", N=454, snp=sub_data$eSNP)\
+      \
+      result <- coloc.abf(\
+          dataset1 = dataset1_list,\
+          dataset2 = dataset2_list,\
+          MAF = sub_data$maf\
+      )\
+      \
+      # --- 
+\f1 \'cc\'e1\'c8\'a1
+\f0  SNP 
+\f1 \'bc\'b6\'b1\'f0\'bd\'e1\'b9\'fb
+\f0  ---\
+      snp_res <- result$results\
+      \
+      # 
+\f1 \'b4\'cb\'ca\'b1
+\f0  snp_res$snp 
+\f1 \'d3\'a6\'b8\'c3\'ca\'c7\'c4\'e3\'cf\'eb\'d2\'aa\'b5\'c4\'d4\'ad\'ca\'bc
+\f0  ID 
+\f1 \'c1\'cb\'a1\'a3
+\f0 \
+      # 
+\f1 \'c8\'e7\'b9\'fb
+\f0  colco 
+\f1 \'bb\'b9\'ca\'c7\'c5\'aa\'b6\'aa\'c1\'cb
+\f0  ID
+\f1 \'a3\'ac\'ce\'d2\'c3\'c7\'d3\'c3\'cf\'c2\'c3\'e6\'d5\'e2\'d0\'d0\'c7\'bf\'d6\'c6\'bc\'d3\'bb\'d8\'c0\'b4\'a3\'ba
+\f0 \
+      # (
+\f1 \'c7\'b0\'cc\'e1\'ca\'c7
+\f0  input 
+\f1 \'c3\'bb\'d3\'d0\'d6\'d8\'b8\'b4\'d0\'d0\'a3\'ac\'c7\'d2\'cb\'b3\'d0\'f2\'c3\'bb\'b1\'e4\'a3\'ac
+\f0 coloc 
+\f1 \'cd\'a8\'b3\'a3\'b2\'bb\'bb\'e1\'c2\'d2\'d0\'f2
+\f0 )\
+      if(all(grepl("^SNP\\\\.", snp_res$snp))) \{\
+         # 
+\f1 \'c8\'e7\'b9\'fb\'c8\'ab\'ca\'c7
+\f0  SNP.1 
+\f1 \'d5\'e2\'d6\'d6\'b8\'f1\'ca\'bd\'a3\'ac\'b3\'a2\'ca\'d4\'c7\'bf\'d6\'c6\'cc\'e6\'bb\'bb\'bb\'d8\'d4\'ad\'ca\'bc
+\f0  ID\
+         # 
+\f1 \'d6\'bb\'d2\'aa
+\f0  sub_data 
+\f1 \'ba\'cd
+\f0  snp_res 
+\f1 \'d0\'d0\'ca\'fd\'d2\'bb\'d1\'f9\'c7\'d2\'d2\'bb\'d2\'bb\'b6\'d4\'d3\'a6
+\f0 \
+         if(nrow(snp_res) == nrow(sub_data)) \{\
+             snp_res$Real_SNP_ID <- sub_data$eSNP\
+             # 
+\f1 \'b0\'d1\'d4\'ad\'c0\'b4\'b5\'c4
+\f0  snp 
+\f1 \'c1\'d0\'bb\'bb\'b5\'f4\'bb\'f2\'d5\'df\'b7\'c5\'b5\'bd\'b5\'da\'d2\'bb\'c1\'d0
+\f0 \
+             snp_res <- data.frame(SNP_ID = sub_data$eSNP, snp_res[, -1]) \
+         \}\
+      \}\
+      \
+      # 
+\f1 \'b0\'b4
+\f0  SNP.PP.H4 
+\f1 \'bd\'b5\'d0\'f2\'c5\'c5\'c1\'d0
+\f0  (
+\f1 \'d7\'ee\'bf\'c9\'c4\'dc\'b5\'c4\'d6\'c2\'b2\'a1
+\f0  SNP 
+\f1 \'c5\'c5\'c7\'b0\'c3\'e6
+\f0 )\
+      snp_res <- snp_res[order(snp_res$SNP.PP.H4, decreasing = TRUE), ]\
+      \
+      # --- 
+\f1 \'b5\'a5\'b6\'c0\'b1\'a3\'b4\'e6\'b8\'c3\'bb\'f9\'d2\'f2\'b5\'c4\'ce\'c4\'bc\'fe
+\f0  ---\
+      # 
+\f1 \'ce\'c4\'bc\'fe\'c3\'fb\'ca\'be\'c0\'fd
+\f0 : Top_Coloc_Results/chr10_104236014.txt\
+      # 
+\f1 \'ca\'b9\'d3\'c3
+\f0  gene 
+\f1 \'c3\'fb\'d7\'f7\'ce\'aa\'ce\'c4\'bc\'fe\'c3\'fb\'a3\'ac\'d7\'a2\'d2\'e2\'b4\'a6\'c0\'ed
+\f0  gene 
+\f1 \'c3\'fb\'c0\'ef\'bf\'c9\'c4\'dc\'b4\'e6\'d4\'da\'b5\'c4\'cc\'d8\'ca\'e2\'d7\'d6\'b7\'fb
+\f0 \
+      safe_gene_name <- gsub("[:/]", "_", gene) \
+      out_file_name <- paste0("Top_Coloc_Results/", safe_gene_name, ".coloc.txt")\
+      \
+      write.table(snp_res, file=out_file_name, sep="\\t", quote=F, row.names=F)\
+      \
+      # 
+\f1 \'bf\'c9\'d1\'a1\'a3\'ba\'b4\'f2\'d3\'a1\'bd\'f8\'b6\'c8
+\f0 \
+      # cat("Saved:", out_file_name, "\\n")\
+    \}\
+  \}\
+  \
+  cat("All individual gene files saved in 'Top_Coloc_Results' folder.\\n")\
+  \
+\} else \{\
+  cat("No genes passed the threshold.\\n")\
+\}\
+\
+################################\
+
+\f1 \'bb\'ad\'cd\'bc
+\f0 \
+###############################\
+library(ggplot2)\
+library(coloc)\
+library(dplyr)\
+library(gridExtra)\
+library(data.table)\
+\
+# =======================================================\
+# 1. 
+\f1 \'c9\'e8\'d6\'c3\'c2\'b7\'be\'b6\'d3\'eb\'c9\'b8\'d1\'a1\'bb\'f9\'d2\'f2
+\f0 \
+# =======================================================\
+\
+# 
+\f1 \'c9\'e8\'d6\'c3\'cd\'bc\'c6\'ac\'b1\'a3\'b4\'e6\'c4\'bf\'c2\'bc
+\f0 \
+plot_dir <- "/zs32/home/ynuoma/edQTL/coloc/Locus_Plots/"\
+if (!dir.exists(plot_dir)) \{\
+  dir.create(plot_dir, recursive = TRUE)\
+\}\
+\
+# 
+\f1 \'c8\'b7\'b1\'a3
+\f0  PP.H4 
+\f1 \'ca\'c7\'ca\'fd\'d6\'b5\'d0\'cd
+\f0 \
+res0$PP.H4.abf <- as.numeric(as.character(res0$PP.H4.abf))\
+\
+# 
+\f1 \'c9\'b8\'d1\'a1
+\f0  Top 
+\f1 \'bb\'f9\'d2\'f2
+\f0 \
+sig_cutoff <- 0.75\
+top_genes <- rownames(res0[which(res0$PP.H4.abf > sig_cutoff), ])\
+\
+cat("Total genes to plot:", length(top_genes), "\\n")\
+\
+# =======================================================\
+# 2. 
+\f1 \'d1\'ad\'bb\'b7\'bb\'e6\'cd\'bc\'b2\'a2\'b1\'a3\'b4\'e6
+\f0 \
+# =======================================================\
+\
+if (length(top_genes) > 0) \{\
+  \
+  for (gene in top_genes) \{\
+    \
+    cat("Plotting:", gene, "...\\n")\
+    \
+    # --- 2.1 
+\f1 \'cc\'e1\'c8\'a1\'ca\'fd\'be\'dd
+\f0  ---\
+    sub_data <- input[input$eGene == gene, ]\
+    sub_data <- na.omit(sub_data)\
+    \
+    if (nrow(sub_data) > 0) \{\
+      \
+      # --- 2.2 
+\f1 \'d4\'cb\'d0\'d0
+\f0  coloc 
+\f1 \'bb\'f1\'c8\'a1
+\f0  SNP 
+\f1 \'bc\'b6\'b1\'f0\'b5\'c4\'ba\'f3\'d1\'e9\'b8\'c5\'c2\'ca
+\f0  (
+\f1 \'d3\'c3\'d3\'da\'c9\'cf\'c9\'ab
+\f0 ) ---\
+      # 
+\f1 \'d7\'a2\'d2\'e2\'a3\'ba\'b1\'d8\'d0\'eb\'b4\'ab\'c8\'eb
+\f0  snp 
+\f1 \'b2\'ce\'ca\'fd\'a3\'ac\'c8\'b7\'b1\'a3
+\f0  ID 
+\f1 \'c4\'dc\'b6\'d4\'c9\'cf
+\f0 \
+      res <- coloc.abf(\
+          dataset1 = list(pvalues=sub_data$P, type="cc", s=0.39, N=58140, snp=sub_data$eSNP),\
+          dataset2 = list(pvalues=sub_data$p.value, type="quant", N=454, snp=sub_data$eSNP),\
+          MAF = sub_data$maf\
+      )\
+      \
+      snp_info <- res$results # 
+\f1 \'b0\'fc\'ba\'ac
+\f0  snp 
+\f1 \'ba\'cd
+\f0  SNP.PP.H4 
+\f1 \'c1\'d0
+\f0 \
+      \
+      # --- 2.3 
+\f1 \'d5\'fb\'c0\'ed\'bb\'e6\'cd\'bc\'ca\'fd\'be\'dd
+\f0  ---\
+      # 
+\f1 \'bd\'ab
+\f0  SNP.PP.H4 
+\f1 \'ba\'cf\'b2\'a2\'bb\'d8\'d4\'ad\'ca\'bc\'ca\'fd\'be\'dd
+\f0 \
+      plot_df <- merge(sub_data, snp_info[, c("snp", "SNP.PP.H4")], \
+                       by.x = "eSNP", by.y = "snp")\
+      \
+      # 
+\f1 \'b4\'a6\'c0\'ed
+\f0  BP (
+\f1 \'ce\'bb\'d6\'c3\'d0\'c5\'cf\'a2
+\f0 )\
+      # 
+\f1 \'c8\'e7\'b9\'fb
+\f0  input 
+\f1 \'c0\'ef\'c3\'bb\'d3\'d0
+\f0  BP 
+\f1 \'c1\'d0\'a3\'ac\'b3\'a2\'ca\'d4\'b4\'d3
+\f0  eSNP (
+\f1 \'b8\'f1\'ca\'bd
+\f0  chr_bp_...) 
+\f1 \'d6\'d0\'cc\'e1\'c8\'a1
+\f0 \
+      if (!"BP" %in% colnames(plot_df)) \{\
+        # 
+\f1 \'bc\'d9\'c9\'e8
+\f0  eSNP 
+\f1 \'b8\'f1\'ca\'bd\'ca\'c7
+\f0  "10_123456_A_G" 
+\f1 \'d5\'e2\'d6\'d6\'a3\'ac\'c8\'a1\'b5\'da\'b6\'fe\'b8\'f6\'d7\'d6\'b6\'ce
+\f0 \
+        plot_df$BP <- as.numeric(sapply(strsplit(as.character(plot_df$eSNP), "_"), `[`, 2))\
+      \}\
+      \
+      # 
+\f1 \'d7\'aa\'bb\'bb\'ce\'aa
+\f0  Mb 
+\f1 \'b5\'a5\'ce\'bb
+\f0 \
+      plot_df$BP_Mb <- plot_df$BP / 1e6\
+      \
+      # 
+\f1 \'b4\'a6\'c0\'ed
+\f0  NA (
+\f1 \'b7\'c0\'d6\'b9\'bb\'ad\'cd\'bc\'b1\'a8\'b4\'ed
+\f0 )\
+      plot_df$SNP.PP.H4[is.na(plot_df$SNP.PP.H4)] <- 0\
+      \
+      # --- 2.4 
+\f1 \'ca\'b9\'d3\'c3
+\f0  ggplot2 
+\f1 \'bb\'e6\'cd\'bc
+\f0  ---\
+      \
+      # 
+\f1 \'b6\'a8\'d2\'e5\'d7\'d3\'cd\'bc
+\f0  1: GWAS\
+      p1 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(P))) +\
+        geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.8) +\
+        # 
+\f1 \'d1\'d5\'c9\'ab\'bd\'a5\'b1\'e4\'a3\'ba\'bb\'d2\'c9\'ab
+\f0 (
+\f1 \'b5\'cd\'b8\'c5\'c2\'ca
+\f0 ) -> 
+\f1 \'ba\'ec\'c9\'ab
+\f0 (
+\f1 \'b8\'df\'b8\'c5\'c2\'ca
+\f0 )\
+        scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +\
+        scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+        labs(title = paste0(gene, " - GWAS Signal"), \
+             y = "-log10(GWAS P)", x = NULL) +\
+        theme_bw() +\
+        theme(legend.position = "right", \
+              axis.text.x = element_blank(), # 
+\f1 \'c8\'a5\'b5\'f4\'c9\'cf\'cd\'bc\'b5\'c4
+\f0  X 
+\f1 \'d6\'e1\'b1\'ea\'b3\'df\'a3\'ac\'b1\'dc\'c3\'e2\'d6\'d8\'b8\'b4
+\f0 \
+              plot.title = element_text(face = "bold"))\
+      \
+      # 
+\f1 \'b6\'a8\'d2\'e5\'d7\'d3\'cd\'bc
+\f0  2: eQTL\
+      p2 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(p.value))) +\
+        geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.8) +\
+        scale_color_gradient(low = "grey70", high = "blue", limits = c(0, 1), name = "P(Causal)") +\
+        scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+        labs(title = paste0(gene, " - eQTL Signal"), \
+             y = "-log10(eQTL P)", x = paste("Position on Chr (Mb)")) +\
+        theme_bw() +\
+        theme(legend.position = "right",\
+              plot.title = element_text(face = "bold"))\
+      \
+      # --- 2.5 
+\f1 \'c6\'b4\'cd\'bc\'b2\'a2\'b1\'a3\'b4\'e6
+\f0  ---\
+      \
+      # 
+\f1 \'ce\'c4\'bc\'fe\'c3\'fb\'b4\'a6\'c0\'ed
+\f0  (
+\f1 \'b7\'c0\'d6\'b9\'cc\'d8\'ca\'e2\'d7\'d6\'b7\'fb
+\f0 )\
+      safe_gene_name <- gsub("[:/]", "_", gene)\
+      out_file <- paste0(plot_dir, safe_gene_name, "_LocusPlot.pdf")\
+      \
+      # 
+\f1 \'c6\'b4\'ba\'cf\'cd\'bc\'cf\'f1
+\f0 \
+      final_plot <- grid.arrange(p1, p2, ncol = 1, heights = c(1, 1))\
+      \
+      # 
+\f1 \'b1\'a3\'b4\'e6\'ce\'aa
+\f0  PDF\
+      ggsave(filename = out_file, plot = final_plot, width = 8, height = 8)\
+      \
+      # 
+\f1 \'c8\'e7\'b9\'fb\'d0\'e8\'d2\'aa
+\f0  PNG 
+\f1 \'b8\'f1\'ca\'bd\'a3\'ac\'c8\'a1\'cf\'fb\'cf\'c2\'c3\'e6\'d5\'e2\'d0\'d0\'b5\'c4\'d7\'a2\'ca\'cd
+\f0 \
+      # ggsave(filename = paste0(plot_dir, safe_gene_name, "_LocusPlot.png"), plot = final_plot, width = 8, height = 8, dpi = 300)\
+    \}\
+  \}\
+  \
+  cat("Done! All plots saved to:", plot_dir, "\\n")\
+  \
+\} else \{\
+  cat("No genes passed the threshold (PP.H4 > 0.75).\\n")\
+\}\
+\
+\
+\
+\
+###################################\
+
+\f1 \'b4\'a6\'c0\'ed
+\f0 gwas 
+\f1 \'ca\'fd\'be\'dd
+\f0 \
+\
+\
+####################################\
+cd  /zs32/home/rrongzhang/project/database/coloc/Asian\
+\
+#1.Depression_178,630_0.0047\
+gzip -dc GWASsummary_Depression_Japanese_SakaueKanai2020.auto.txt.gz | \\\
+awk 'BEGIN\{OFS="\\t"; print "CHR_BP_A1_A2", "FRQ_A_22778", "OR", "SE", "P", "maf"\} \
+NR>1 \{\
+    # Col 8 
+\f1 \'ca\'c7
+\f0  AF_Allele2 (
+\f1 \'d4\'ad\'c0\'b4\'b5\'c4\'b5\'da
+\f0 7
+\f1 \'c1\'d0
+\f0 +1)\
+    if($8 > 0.5) maf = 1 - $8; else maf = $8;\
+    \
+    # Beta 
+\f1 \'d4\'da\'b5\'da
+\f0  11 
+\f1 \'c1\'d0\'a3\'ac\'d7\'aa
+\f0  OR: exp($11)\
+    # ID: CHR($2)_POS($3)_A1($5)_A2($6)\
+    print $2"_"$3"_"$5"_"$6, $8, exp($11), $12, $14, maf\
+\}' > /zs32/home/ynuoma/edQTL/coloc/gwas/Depression_Japanese_formatted.txt\
+\
+head -n 5 /zs32/home/ynuoma/edQTL/coloc/gwas/Depression_Japanese_formatted.txt\
+\
+\
+#2Parkinsons_176,128_0.0019\
+gzip -dc GWASsummary_Parkinsons_Disease_Japanese_SakaueKanai2020.auto.txt.gz | \\\
+awk 'BEGIN\{OFS="\\t"; print "CHR_BP_A1_A2", "FRQ_A_22778", "OR", "SE", "P", "maf"\} \
+NR>1 \{\
+    # Col 8 
+\f1 \'ca\'c7
+\f0  AF\
+    if($8 > 0.5) maf = 1 - $8; else maf = $8;\
+    \
+    # Beta 
+\f1 \'d4\'da\'b5\'da
+\f0  11 
+\f1 \'c1\'d0
+\f0 \
+    print $2"_"$3"_"$5"_"$6, $8, exp($11), $12, $14, maf\
+\}' > /zs32/home/ynuoma/edQTL/coloc/gwas/Parkinsons_Japanese_formatted.txt\
+\
+head -n 5 /zs32/home/ynuoma/edQTL/coloc/gwas/Parkinsons_Japanese_formatted.txt\
+\
+\
+#4.MD_10,640_0.498\
+gzip -dc MD_GWAS_SNPresults.txt.gz | \\\
+awk 'BEGIN\{OFS="\\t"; print "CHR_BP_A1_A2", "FRQ_A_22778", "OR", "SE", "P", "maf"\} \
+NR>1 \{\
+    # Col 6 
+\f1 \'ca\'c7
+\f0  ALT_FREQ\
+    if($6 > 0.5) maf = 1 - $6; else maf = $6;\
+    # Col 18 
+\f1 \'ca\'c7
+\f0  OddsRatio\
+    # Col 17 
+\f1 \'ca\'c7
+\f0  SNPWeightSE (
+\f1 \'bc\'b4
+\f0  SE)\
+    # Col 11 
+\f1 \'ca\'c7
+\f0  Pvalue\
+    # ID: Chr($1)_Pos($2)_Ref($4)_Alt($5)\
+    print $1"_"$2"_"$4"_"$5, $6, $18, $17, $11, maf\
+\}' > /zs32/home/ynuoma/edQTL/coloc/gwas/MD_GWAS_formatted.txt\
+\
+head -n 5  /zs32/home/ynuoma/edQTL/coloc/gwas/MD_GWAS_formatted.txt\
+\
+#########################\
+3
+\f1 \'ba\'cd
+\f2 4\uc0\u65039 \u8419 
+\f1 \'ca\'c7\'cf\'e0\'cd\'ac\'b5\'c4\'a3\'ac\'cb\'f9\'d2\'d4\'d6\'bb\'b1\'a3\'b4\'e6\'d2\'bb\'b8\'f6\'a3\'ac\'ba\'f3\'d0\'f8\'c5\'dc
+\f0 coloc 
+\f1 \'b5\'c4\'b4\'fa\'c2\'eb\'d4\'da\'b1\'ca\'bc\'c7\'b1\'be\'c9\'cf
+\f0 \
+\
+ #####################################\
+\
+\
+\
+\
+\
+\
+}

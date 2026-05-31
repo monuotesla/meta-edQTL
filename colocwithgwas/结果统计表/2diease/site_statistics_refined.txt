@@ -1,0 +1,11 @@
+edSite_File	Gene	Site_Anno	Disease	PPH4	Total_Markers	Final_Class_Distribution
+7_137067935	DGKI	UTR3	SCZ	0.980404971944159	147	Consistent_LowHet(129); Ambiguous(6); Consistent_HighHet(12)
+14_104148656	AL139300.1;KLC1	intronic	MDD	0.882319599318064	95	Consistent_LowHet(94); Ambiguous(1)
+4_103732420	UBE2D3	intronic	SCZ	0.923211435796527	239	Consistent_LowHet(183); Ambiguous(34); Consistent_HighHet(25)
+7_137067938	DGKI	UTR3	SCZ	0.956457284482876	179	Consistent_LowHet(171); Ambiguous(7); Consistent_HighHet(1)
+4_103732391	UBE2D3	intronic	SCZ	0.764547494391292	198	Opposite_HighHet(16); Opposite_LowHet(1); Consistent_LowHet(180); Ambiguous(4)
+4_103732441	UBE2D3	intronic	SCZ	0.86287084943236	232	Consistent_LowHet(220); Ambiguous(15)
+1_151415103	POGZ	intronic	MDD	0.929826638888332	83	Consistent_LowHet(30); Consistent_HighHet(35); Ambiguous(19)
+4_103732387	UBE2D3	intronic	SCZ	0.918991491628904	212	Opposite_HighHet(17); Consistent_LowHet(184); Consistent_HighHet(6); Ambiguous(8)
+4_103735739	AC018797.3	ncRNA_intronic	SCZ	0.855584842975372	190	Consistent_LowHet(187); Ambiguous(3); Consistent_HighHet(3)
+4_103731698	UBE2D3	intronic	SCZ	0.908109782148743	281	Consistent_LowHet(232); Consistent_HighHet(2); Ambiguous(50)

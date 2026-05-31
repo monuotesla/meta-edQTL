@@ -1,0 +1,627 @@
+############################
+第0种coloc 方法
+/gpfs/hpc/home/chenchao/share_group_folder/gwas/ungz/ADHD.tsv
+
+225534（38691/186843） 
+"./munge_sumstats.py \
+--sumstats /gpfs/hpc/home/chenchao/share_group_folder/gwas/ungz/ADHD.tsv \
+--N-cas-col Nca \
+--N-con-col Nco \
+--frq FRQ_A_38691 \
+--info INFO \
+--out /gpfs/hpc/home/chenchao/share_group_folder/gwas/sumstats/ADHD"
+
+
+/gpfs/hpc/home/chenchao/share_group_folder/gwas/ungz/ADHD.tsv
+############################
+library(data.table)
+
+# 1. 定义样本量参数
+n_case <- 38691
+n_control <- 186843
+n_total <- 225534
+
+# 2. 读取原始 ADHD 数据
+# 路径: /gpfs/hpc/home/chenchao/share_group_folder/gwas/ungz/ADHD.tsv
+adhd_raw <- fread("/gpfs/hpc/home/chenchao/share_group_folder/gwas/ungz/ADHD.tsv")
+
+# 3. 数据转换与规范化
+# 对应关系：
+# MarkerName <- SNP, A1 <- A1, A2 <- A2, LogOR <- log(OR), StdErrLogOR <- SE, pval <- P, chr <- CHR, pos <- BP
+adhd_format <- adhd_raw[, .(
+  MarkerName = SNP,
+  A1 = toupper(A1),
+  A2 = toupper(A2),
+  # 注意：coloc 需要的是 Log(OR)，原始数据是 OR
+  LogOR = log(OR),
+  StdErrLogOR = SE,
+  pval = P,
+  chr = CHR,
+  pos = BP,
+  # 使用提供的 Case/Control 样本量计算加权平均频率
+  # FRQ_A_38691 是 Case 频率, FRQ_U_186843 是 Control 频率
+  Freq = (FRQ_A_38691 * n_case + FRQ_U_186843 * n_control) / n_total
+)]
+
+# 4. 计算 MAF (Minor Allele Frequency)
+adhd_format[, maf := ifelse(Freq > 0.5, 1 - Freq, Freq)]
+
+# 5. 生成统一的 snp ID (格式: chr_pos_A1_A2)
+# 确保这里的拼接逻辑与你的 edQTL 完全一致
+adhd_format[, snp := paste(chr, pos, A1, A2, sep = "_")]
+
+# 6. 整理最终列顺序
+final_cols <- c("MarkerName", "A1", "A2", "Freq", "LogOR", "StdErrLogOR", "pval", "maf", "chr", "pos", "snp")
+adhd_final <- adhd_format[, ..final_cols]
+
+# 7. 检查结果
+print("ADHD 数据处理完成，前几行预览：")
+print(head(adhd_final))
+
+# 8. 保存文件
+fwrite(adhd_final, 
+       file = "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/gwas/ADHD_formatted.txt", 
+       sep = "\t", quote = FALSE, row.names = FALSE)
+
+> print(head(bip_final))
+   MarkerName     A1     A2      Freq        LogOR StdErrLogOR   pval
+       <char> <char> <char>     <num>        <num>       <num>  <num>
+1: rs62513865      C      T 0.9349414 -0.003696825      0.0175 0.8325
+2: rs79643588      G      A 0.9157991  0.004101577      0.0159 0.7967
+3: rs17396518      T      G 0.5742552 -0.003897586      0.0096 0.6876
+4:   rs983166      A      C 0.5832552 -0.005102998      0.0096 0.5956
+5: rs28842593      T      C 0.8365147 -0.017003748      0.0135 0.2081
+6:  rs7014597      G      C 0.8240000 -0.000500125      0.0122 0.9679
+          maf   chr       pos             snp
+        <num> <int>     <int>          <char>
+1: 0.06505863     8 101592213 8_101592213_C_T
+2: 0.08420087     8 106973048 8_106973048_G_A
+3: 0.42574485     8 108690829 8_108690829_T_G
+4: 0.41674485     8 108681675 8_108681675_A_C
+5: 0.16348534     8 103044620 8_103044620_T_C
+6: 0.17600000     8 104152280 8_104152280_G_C
+
+
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/gwas/BIP_formatted_final.txt
+
+###########################
+# ----------------------------------------------------------------------
+# 1. 加载库和设置环境
+# ----------------------------------------------------------------------
+library(snpStats)
+library(BiocManager)
+library(coloc)
+library(reshape2)
+library(parallel) # 用于后续并行计算
+
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/ADHD/")
+
+# ----------------------------------------------------------------------
+# 2. 加载数据文件
+# ----------------------------------------------------------------------
+
+## A. eQTL 循环依据文件 (FDR 过滤后的显著 edSite 列表)
+# 用于确定要分析的 edSite 列表
+eqtl_sig <- read.table(
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/逆方差加权/metal_results_hg38/hg19/all_significant_classified_hg19.txt", 
+    as.is=T
+)
+eqtl_sig$eGene <- eqtl_sig$V1 # edsite ID
+
+# B. eQTL 全量数据文件 (未过滤的 SNP 汇总统计)
+# 用于提取区域内的所有 SNP 数据 (pvalues, eSNP, N)
+eqtl_full <- read.table(
+   file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/逆方差加权/metal_results_hg38/hg19_all/all_merged_classified.allele_fixed_hg19.txt", 
+    as.is=T
+)
+# 假设全文件 V1=eGene, V2=eSNP, V11=p.value, V9=N
+eqtl_full$eGene <- eqtl_full$V1
+eqtl_full$eSNP <- eqtl_full$V2
+eqtl_full$p.value <- eqtl_full$V11 
+
+# C. GWAS 数据文件 (保持不变)
+gwas = adhd_final
+
+# ----------------------------------------------------------------------
+# 3. 解析 CHR/POS 信息 (只对全量数据和GWAS进行一次解析)
+# ----------------------------------------------------------------------
+
+# 从 eQTL 全量数据解析 edSite 的 CHR/POS，用于窗口中心
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))
+eqtl_full$site_chr <- as.integer(tmp_site[, 1])
+eqtl_full$site_pos <- as.integer(tmp_site[, 2])
+
+# 从 eQTL 全量数据解析 eSNP 的 CHR/POS，用于后续可能的区域过滤（可选）
+tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))
+eqtl_full$snp_chr <- as.integer(tmp_snp[, 1])
+eqtl_full$snp_pos <- as.integer(tmp_snp[, 2])
+
+
+# ----------------------------------------------------------------------
+# 4. 定义共定位函数 (现在使用 eqtl_full 进行数据提取)
+# ----------------------------------------------------------------------
+window <- 500000
+#"1_10451955" "1_10452114" "1_10517313" "1_10518052" "1_10519002"
+#测试 site_id= "1_10519874"
+
+run_one_edsite <- function(site_id) {
+
+    ## -------------------------
+    ## 1. 确定 edSite 中心和区域
+    ## -------------------------
+    # 从全量数据中获取该 edSite 的任意一行来确定中心坐标
+    edsite_info <- eqtl_full[eqtl_full$eGene == site_id, ][1, ]
+
+    # 检查是否能找到坐标
+    if (is.na(edsite_info$site_chr)) return(NULL)
+
+    chr_k <- edsite_info$site_chr
+    pos_k <- edsite_info$site_pos
+
+    region_start <- pos_k - window
+    region_end 	 <- pos_k + window
+
+    ## -------------------------
+    ## 2. eQTL: 从 'eqtl_full' 中提取 edSite ±window 内的所有 SNP
+    ## -------------------------
+    # 过滤条件：匹配 edSite ID  AND 位点在窗口内
+    eqtl_reg <- eqtl_full[
+        eqtl_full$eGene == site_id &
+        eqtl_full$snp_chr == chr_k &
+        eqtl_full$snp_pos >= region_start &
+        eqtl_full$snp_pos <= region_end,
+    ]
+    
+    if (nrow(eqtl_reg) < 2) return(NULL)
+
+    ## -------------------------
+    ## 3. GWAS：取 edsite ±window
+    ## -------------------------
+    gwas_reg <- gwas[
+        gwas$chr == chr_k &
+        gwas$pos >= region_start &
+        gwas$pos <= region_end,
+    ]
+   
+    if (nrow(gwas_reg) < 5) return(NULL)
+
+    ## -------------------------
+    ## 4. SNP 交集与对齐 (关键)
+    ## -------------------------
+    snps_common <- intersect(gwas_reg$snp, eqtl_reg$eSNP)
+
+    if (length(snps_common) < 2) return(NULL) # 必须有足够 SNP
+
+    ## 保证顺序完全一致
+    gwas_use <- gwas_reg[match(snps_common, gwas_reg$snp), ]
+    eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]
+
+    ## -------------------------
+    ## 5. coloc (代码保持不变)
+     ##500199(170756
+    ## -------------------------
+    coloc_res <- coloc.abf(
+        dataset1 = list(
+            pvalues = gwas_use$pval, type = "cc", s = 0.2, N = 225534, snp = snps_common
+        ),
+        dataset2 = list(
+            pvalues = eqtl_use$p.value, type = "quant", N = 975, snp = snps_common
+        ),
+        MAF = gwas_use$maf
+    )
+
+    ## -------------------------
+    ## 6. 返回结果
+    ## -------------------------
+    data.frame(
+        edsite = site_id, chr = chr_k, pos = pos_k,
+        nsnps = coloc_res$summary["nsnps"],
+        PP.H0 = coloc_res$summary["PP.H0.abf"], PP.H1 = coloc_res$summary["PP.H1.abf"], 
+        PP.H2 = coloc_res$summary["PP.H2.abf"], PP.H3 = coloc_res$summary["PP.H3.abf"], 
+        PP.H4 = coloc_res$summary["PP.H4.abf"]
+    )
+}
+
+# ----------------------------------------------------------------------
+# 5. 并行执行和结果处理 (与之前相同)
+# ----------------------------------------------------------------------
+unique_edsites <- unique(eqtl_sig$eGene) # 仍然使用显著列表作为循环依据
+
+ncore <- 20 # 假设分配了 20 个核心
+
+message(paste("Starting colocalization analysis on", length(unique_edsites), "edsites using", ncore, "cores..."))
+
+results_list <- mclapply(
+    unique_edsites,             
+    run_one_edsite,             
+    mc.cores = ncore
+)
+
+# 结果合并、清理和排序
+results_list_cleaned <- results_list[!sapply(results_list, is.null)]
+results_df <- do.call(rbind, results_list_cleaned)
+
+# 输出 Top 20 和文件
+results_df$PP.H4.abf <- as.numeric(as.character(results_df$PP.H4))
+sorted_results <- results_df[order(results_df$PP.H4.abf, decreasing = TRUE), ]
+top_20_pph4 <- head(sorted_results, 20)
+print("--- PP.H4.abf 最大的 Top 20 共定位关联 (基于全量数据) ---")
+print(top_20_pph4)
+
+write.table(results_df, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/ADHD/meta_edsite_coloc_all_results_full_data.txt", sep="\t", row.names=F, quote=F)
+# ... (省略显著结果输出部分)
+
+
+# 假设显著性阈值仍为 0.75
+sig_cutoff <- 0.75
+sig_summary <- sorted_results[sorted_results$PP.H4.abf > sig_cutoff, ]
+write.table(sig_summary, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/ADHD/meta_edsite_coloc_sig_075.summary.txt", sep="\t", row.names=F, quote=F)
+
+
+
+
+
+##################提取snp 和可视化
+##################提取snp 和可视化
+##################提取snp 和可视化
+##################提取snp 和可视化
+library(qvalue)
+library(ggplot2)
+library(coloc)
+library(dplyr)
+library(gridExtra)
+library(data.table)
+
+# !!! 假设以下全局变量已在 R 环境中加载 !!!
+# eqtl_full: 包含所有 edQTL/eQTL 数据的完整数据框
+# gwas:      包含所有 GWAS 数据的完整数据框
+# window:    定义了查找共享 SNP 的上下游距离 (例如 1e6)
+# -----------------------------------------------
+
+# ... (汇总结果处理部分保持不变) ...
+
+# =======================================================
+# 1. 循环提取 SNP 详情并单独保存
+# =======================================================
+
+
+sig_genes_list <- (sig_summary$edsite)
+dir.create("Top_Coloc_Results", showWarnings = FALSE)
+
+if(length(sig_genes_list) > 0) {
+    
+    cat("Processing individual edSite files...\n")
+    
+    for(gene in sig_genes_list) {
+        
+        # --- 关键整合：数据提取和对齐 (基于 run_one_edsite 逻辑) ---
+        
+        # 1. 确定 edSite 中心和区域 (从 eqtl_full 中提取)
+        edsite_info <- eqtl_full[eqtl_full$eGene == gene, ][1, ]
+        if (is.na(edsite_info$site_chr)) next # 跳过无坐标的位点
+        
+        chr_k <- edsite_info$site_chr
+        pos_k <- edsite_info$site_pos
+        region_start <- pos_k - window
+        region_end <- pos_k + window
+
+        # 2. 提取 eQTL/edQTL 数据
+        eqtl_reg <- eqtl_full[
+            eqtl_full$eGene == gene &
+            eqtl_full$snp_chr == chr_k &
+            eqtl_full$snp_pos >= region_start &
+            eqtl_full$snp_pos <= region_end,
+        ]
+        
+        # 3. 提取 GWAS 数据
+        gwas_reg <- gwas[
+            gwas$chr == chr_k &
+            gwas$pos >= region_start &
+            gwas$pos <= region_end,
+        ]
+
+        # 4. SNP 交集与对齐
+        snps_common <- intersect(gwas_reg$snp, eqtl_reg$eSNP)
+        if (length(snps_common) < 2) next # 必须有足够 SNP
+
+        gwas_use <- gwas_reg[match(snps_common, gwas_reg$snp), ]
+        eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]
+        
+        # 将 sub_data 替换为 eqtl_use/gwas_use 的组合，用于 Coloc 输入
+        
+        # --- 5. 运行 coloc ---
+        
+        # D1=GWAS, D2=eQTL。参数与 run_one_edsite 保持一致。
+        # coloc 结果
+result <- coloc.abf(
+  dataset1 = list(
+    pvalues = gwas_use$pval,
+    type = "cc",
+    s = 0.101,
+    N = 413466,
+    snp = sips_common
+  ),
+  dataset2 = list(
+    pvalues = eqtl_use$p.value,
+    type = "quant",
+    N = 975,
+    snp = snps_common
+  ),
+  MAF = gwas_use$maf
+)
+
+# ===== 正确的 SNP 级别表 =====
+snp_res <- result$results
+
+# ⚠️ 不 merge！直接 cbind（顺序已经对齐）
+plot_df <- data.frame(
+  eSNP       = snp_res$snp,
+  BP         = gwas_use$pos,
+  GWAS_P     = gwas_use$pval,
+  EQTL_P     = eqtl_use$p.value,
+  MAF        = gwas_use$maf,
+  SNP.PP.H4  = snp_res$SNP.PP.H4
+)
+        
+        # 按 SNP.PP.H4 降序排列 
+        snp_res_final <- plot_df[order(plot_df$SNP.PP.H4, decreasing = TRUE), ]
+        
+        # --- 单独保存该 edSite 的文件 ---
+        safe_gene_name <- gsub("[:/]", "_", gene)  
+        out_file_name <- paste0("Top_Coloc_Results/", safe_gene_name, ".coloc.txt")
+        
+        write.table(snp_res_final, file=out_file_name, sep="\t", quote=F, row.names=F)
+    }
+    
+    cat("All individual edSite files saved in 'Top_Coloc_Results' folder.\n")
+    
+} else {
+    cat("No edSites passed the threshold.\n")
+}
+
+# =======================================================
+# 2. Locus 可视化 (参数统一与数据整合)
+# =======================================================
+
+# ... (图片保存目录和 top_genes 筛选逻辑保持不变) ...
+plot_dir="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/BIP_EUR/result/"
+
+top_genes=sig_genes_list
+if (length(top_genes) > 0) {
+    
+    for (gene in top_genes) {
+        
+        # --- 关键整合：数据提取和对齐 (与上方逻辑一致) ---
+        # 1. 确定 edSite 中心和区域
+        edsite_info <- eqtl_full[eqtl_full$eGene == gene, ][1, ]
+        if (is.na(edsite_info$site_chr)) next
+        chr_k <- edsite_info$site_chr
+        pos_k <- edsite_info$site_pos
+        region_start <- pos_k - window
+        region_end <- pos_k + window
+
+        # 2. 提取 eQTL/edQTL 数据
+        eqtl_reg <- eqtl_full[
+            eqtl_full$eGene == gene & eqtl_full$snp_chr == chr_k & eqtl_full$snp_pos >= region_start & eqtl_full$snp_pos <= region_end,
+        ]
+        
+        # 3. 提取 GWAS 数据
+        gwas_reg <- gwas[
+            gwas$chr == chr_k & gwas$pos >= region_start & gwas$pos <= region_end,
+        ]
+
+        # 4. SNP 交集与对齐
+        snps_common <- intersect(gwas_reg$snp, eqtl_reg$eSNP)
+        if (length(snps_common) < 2) next
+
+        gwas_use <- gwas_reg[match(snps_common, gwas_reg$snp), ]
+        eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]
+        
+        # 5. 重新运行 coloc
+        res <- coloc.abf(
+            dataset1 = list(pvalues = gwas_use$pval, type = "cc", s = 0.101, N = 413466, snp = snps_common),
+            dataset2 = list(pvalues = eqtl_use$p.value, type = "quant", N = 975, snp = snps_common),
+            MAF = gwas_use$maf
+        )
+            
+        snp_info <- res$results # 包含 snp 和 SNP.PP.H4 列
+        
+        # --- 6. 整理绘图数据 (使用交集结果) ---
+        plot_df <- data.frame(
+            eSNP = snps_common,
+            BP = gwas_use$pos, # 使用 GWAS 的位置信息作为 X 轴
+            GWAS_P = gwas_use$pval,
+            EQTL_P = eqtl_use$p.value
+        )
+        
+        # 将 SNP.PP.H4 合并回绘图数据
+        plot_df <- merge(plot_df, snp_info[, c("snp", "SNP.PP.H4")], by.x = "eSNP", by.y = "snp")
+        
+        # 转换为 Mb 单位
+        plot_df$BP_Mb <- plot_df$BP / 1e6
+        plot_df$SNP.PP.H4[is.na(plot_df$SNP.PP.H4)] <- 0
+        
+        # --- 2.4 使用 ggplot2 绘图 ---
+        
+        # 定义子图 1: GWAS
+# --- 1. 识别该区域的 Top SNP ---
+# 找到 SNP.PP.H4 最大的那一行
+top_snp_row <- plot_df[which.max(plot_df$SNP.PP.H4), ]
+top_snp_id <- top_snp_row$eSNP
+
+# 重新对 plot_df 排序，确保 PP.H4 大的点最后画（画在最上层）
+plot_df <- plot_df %>% arrange(SNP.PP.H4)
+
+# --- 2. 定义子图 1: GWAS ---
+p1 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(GWAS_P))) +
+    # 画背景点
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +
+    # 专门给 Top SNP 画一个大菱形
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(GWAS_P)), 
+               color = "red", shape = 18, size = 6) + 
+    # 标注 Top SNP 的 ID
+    geom_text(data = top_snp_row, aes(label = eSNP), 
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +
+    expand_limits(y = max(-log10(plot_df$GWAS_P)) * 1.2) + # 留出文字空间
+    labs(title = paste0(gene, " - GWAS Signal"), y = "-log10(GWAS P)", x = NULL) +
+    theme_bw() + theme(legend.position = "right", axis.text.x = element_blank())
+
+# --- 3. 定义子图 2: edQTL ---
+p2 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(EQTL_P))) +
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +
+    # 同样给 edQTL 图也标出 Top SNP
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(EQTL_P)), 
+               color = "red", shape = 18, size = 6) +
+    geom_text(data = top_snp_row, aes(label = eSNP), 
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +
+    expand_limits(y = max(-log10(plot_df$EQTL_P)) * 1.2) +
+    labs(title = paste0(gene, " - edQTL Signal"), 
+         y = "-log10(edQTL P)", x = paste("Position on Chr (Mb)")) +
+    theme_bw() + theme(legend.position = "right")
+
+
+            
+        # --- 2.5 拼图并保存 ---
+       safe_gene_name <- gsub("[:/]", "_", gene)
+        out_file <- paste0(plot_dir, safe_gene_name, "_LocusPlot.pdf")
+        
+        final_plot <- grid.arrange(p1, p2, ncol = 1, heights = c(1, 1))
+        
+        # 使用 ggsave 保存拼合的图
+        ggsave(filename = out_file, plot = final_plot, width = 8, height = 8)
+    }
+    
+    cat("Done! All plots saved to:", plot_dir, "\n")
+    
+} else {
+    cat("No edSites passed the threshold (PP.H4 > 0.75).\n")
+}
+
+
+
+
+
+
+########################
+
+下边的还是 MDD 的，bip 的先不画了
+################################
+library(locusplotr)  可视化
+###############################
+
+
+library(devtools)
+library(locusplotr)
+library(tidy verse)
+
+
+gwas <- read.table(
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/gwas/MDD", 
+    header=T
+)
+
+
+
+
+# 14_104108743_A_G  edsnp
+
+
+gwas[gwas$pos == 104108743 & gwas$chr == 14, ]
+
+
+# 1. 将绘图结果赋值给 p
+p <- gwas %>%
+  gg_locusplot(
+    lead_snp = "14_104108743_A_G",
+    rsid = snp,
+    chrom = chr,
+    pos = pos,
+    ref = A1,
+    alt = A2,
+    p_value = pval,
+    plot_genes = TRUE,
+    plot_recombination = TRUE
+  )
+
+
+# 2. 定义保存路径和文件名
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/result/MDD_14_104108743_A_G_locusplot.pdf"
+
+# 3. 使用 ggsave 保存
+# 你可以根据需要更改后缀为 .png, .pdf, 或 .tiff
+library(ggplot2)
+ggsave(
+  filename = output_path, 
+  plot = p, 
+  width = 10,   # 宽度，建议 Locus Plot 设置宽一点
+  height = 7,   # 高度
+  dpi = 300     # 分辨率（如果是 PNG 格式的话）
+)
+
+cat("图片已保存至:", output_path, "\n")
+
+######################
+14_104108743_A_G 
+
+#########################
+
+#画一个 edqtl 的
+
+eqtl_full <- read.table(
+   file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/逆方差加权/metal_results_hg38/hg19_all/all_merged_classified.allele_fixed_hg19.txt", 
+    as.is=T
+)
+# 假设全文件 V1=eGene, V2=eSNP, V11=p.value, V9=N
+eqtl_full$eGene <- eqtl_full$V1
+eqtl_full$eSNP <- eqtl_full$V2
+eqtl_full$p.value <- eqtl_full$V11 
+
+
+# ----------------------------------------------------------------------
+# 3. 解析 CHR/POS 信息 (只对全量数据和GWAS进行一次解析)
+# ----------------------------------------------------------------------
+
+# 从 eQTL 全量数据解析 edSite 的 CHR/POS，用于窗口中心
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))
+eqtl_full$site_chr <- as.integer(tmp_site[, 1])
+eqtl_full$site_pos <- as.integer(tmp_site[, 2])
+
+# 从 eQTL 全量数据解析 eSNP 的 CHR/POS，用于后续可能的区域过滤（可选）
+tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))
+eqtl_full$snp_chr <- as.integer(tmp_snp[, 1])
+eqtl_full$snp_pos <- as.integer(tmp_snp[, 2])
+
+
+
+p <- 
+gg_locusplot(
+  df = eqtl_full,
+  lead_snp = "14_104108743_A_G",
+  rsid = eSNP,
+  chrom = snp_chr,
+  pos = snp_pos,
+  ref = V3,
+  alt = V4,
+  p_value = p.value,
+  plot_genes = TRUE,
+  plot_recombination = TRUE
+)
+
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/result/edQTL_14_104108743_A_G_locusplot.pdf"
+
+# 3. 使用 ggsave 保存
+# 你可以根据需要更改后缀为 .png, .pdf, 或 .tiff
+library(ggplot2)
+ggsave(
+  filename = output_path, 
+  plot = p, 
+  width = 10,   # 宽度，建议 Locus Plot 设置宽一点
+  height = 7,   # 高度
+  dpi = 300     # 分辨率（如果是 PNG 格式的话）
+)
+
+
