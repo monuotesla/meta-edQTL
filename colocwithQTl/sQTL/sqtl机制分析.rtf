@@ -1,0 +1,818 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;\f2\fnil\fcharset0 AppleColorEmoji;
+\f3\fnil\fcharset0 LucidaGrande;}
+{\colortbl;\red255\green255\blue255;\red251\green2\blue7;\red253\green128\blue8;\red0\green0\blue0;
+}
+{\*\expandedcolortbl;;\cssrgb\c100000\c14913\c0;\cssrgb\c100000\c57637\c0;\cssrgb\c0\c0\c0;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww24580\viewh14900\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 #################sQTL 
+\f1 \'bb\'fa\'d6\'c6\'b7\'d6\'b2\'e3
+\f0 \
+\
+#
+\f1 \'c9\'fa\'b3\'c9\'d7\'a2\'ca\'cd\'d0\'c5\'cf\'a2
+\f0 \
+awk '\
+BEGIN\{OFS="\\t"\}\
+\
+# =========================\
+# 
+\f2 1\uc0\u65039 \u8419 
+\f0  
+\f1 \'cf\'c8\'b6\'c1\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe\'a3\'a8\'b9\'b9\'bd\'a8
+\f0 hash
+\f1 \'a3\'a9
+\f0 \
+# =========================\
+NR==FNR \{\
+  key=$1\
+  anno[key]=$(NF-2) "\\t" $(NF-1) "\\t" $NF\
+  next\
+\}\
+\
+# =========================\
+# 
+\f2 2\uc0\u65039 \u8419 
+\f0  
+\f1 \'b4\'a6\'c0\'ed
+\f0 coloc
+\f1 \'bd\'e1\'b9\'fb
+\f0 \
+# =========================\
+FNR==1 \{\
+  print $0, "repeat_element", "genomic_annotation", "gene_name"\
+  next\
+\}\
+\
+\{\
+  key=$1\
+  if (key in anno) \{\
+    print $0, anno[key]\
+  \} else \{\
+    print $0, "NA", "NA", "NA"\
+  \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_01.summary.txt\\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.annotated.txt\
+\
+#################################\
+\
+#distance_start = edsite_pos - intron_start   
+\f1 \'a3\'a8\'b4\'f8\'d5\'fd\'b8\'ba\'a3\'a9
+\f0 \
+#distance_end   = edsite_pos - intron_end     
+\f1 \'a3\'a8\'b4\'f8\'d5\'fd\'b8\'ba\'a3\'a9
+\f0 \
+\
+#
+\f1 \'cc\'e1\'c8\'a1
+\f0  lead SNP\
+results_list_clean <- Filter(function(x) !is.null(x), results_list)\
+\
+\
+top_80_pph4 <- head(sorted_results, 80)\
+sig_edsites <- top_80_pph4$edsite\
+\
+lead_snp_list <- lapply(sig_edsites, function(site)\{\
+\
+  # 
+\f2 1\uc0\u65039 \u8419 
+\f0  locus
+\f1 \'b6\'a8\'ce\'bb
+\f0 \
+  edsite_info <- eqtl_full[eqtl_full$edsite == site, ][1, ]\
+\
+  if (nrow(edsite_info) == 0 || is.na(edsite_info$site_chr)) return(NULL)\
+\
+  chr_k <- edsite_info$site_chr\
+  pos_k <- edsite_info$site_pos\
+\
+  region_start <- pos_k - window\
+  region_end   <- pos_k + window\
+\
+  # 
+\f2 2\uc0\u65039 \u8419 
+\f0  eqtl 
+\f1 \'c7\'f8\'d3\'f2\'a3\'a8\'b9\'d8\'bc\'fc\'d0\'de\'d5\'fd\'a3\'a9
+\f0 \
+  eqtl_reg <- eqtl_full[\
+    eqtl_full$edsite == site &\
+    eqtl_full$snp_chr == chr_k &\
+    eqtl_full$snp_pos >= region_start &\
+    eqtl_full$snp_pos <= region_end,\
+  ]\
+\
+  if (nrow(eqtl_reg) < 2) return(NULL)\
+\
+  # 
+\f2 3\uc0\u65039 \u8419 
+\f0  gwas\
+  gwas_reg <- gwas[\
+    gwas$snp_chr == chr_k &\
+    gwas$snp_pos >= region_start &\
+    gwas$snp_pos <= region_end,\
+  ]\
+\
+  if (nrow(gwas_reg) < 2) return(NULL)\
+\
+  # 
+\f2 4\uc0\u65039 \u8419 
+\f0  SNP
+\f1 \'bd\'bb\'bc\'af
+\f0 \
+  snps_common <- intersect(gwas_reg$eSNP, eqtl_reg$eSNP)\
+  if (length(snps_common) < 2) return(NULL)\
+\
+  gwas_use <- gwas_reg[match(snps_common, gwas_reg$eSNP), ]\
+  eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+\
+  # 
+\f2 5\uc0\u65039 \u8419 
+\f0  coloc\
+  res <- coloc.abf(\
+    dataset1 = list(pvalues = gwas_use$pval, type = "quant", N = 546, snp = snps_common),\
+    dataset2 = list(pvalues = eqtl_use$p.value, type = "quant", N = 546, snp = snps_common),\
+    MAF = gwas_use$maf\
+  )\
+\
+  snp_res <- res$results\
+\
+  if (is.null(snp_res) || nrow(snp_res) == 0) return(NULL)\
+\
+  idx <- which.max(snp_res$SNP.PP.H4)\
+  if (length(idx) == 0) return(NULL)\
+\
+  data.frame(\
+    edsite = site,\
+    lead_snp = snp_res$snp[idx],\
+    PP.H4 = snp_res$SNP.PP.H4[idx],\
+    stringsAsFactors = FALSE\
+  )\
+\})\
+\
+\
+lead_df <- do.call(rbind, lead_snp_list[!sapply(lead_snp_list, is.null)])\
+\
+write.table(\
+  lead_df,\
+  file = "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/edsite_lead_snp.txt",\
+  sep = "\\t",\
+  row.names = FALSE,\
+  quote = FALSE\
+)\
+\
+\
+##########################################\
+awk -F'\\t' -v OFS='\\t' '\
+\
+# =========================\
+# 
+\f2 1\uc0\u65039 \u8419 
+\f0  
+\f1 \'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 sQTL\
+# =========================\
+ARGIND==1 \{\
+  snp=$8\
+  event=$1\
+\
+  split($1,a,"|")\
+  split(a[2],b,":")\
+\
+  chr=b[1]\
+  start=b[2]\
+  end=b[3]\
+\
+  key[snp]=key[snp] chr":"start":"end":"event";"\
+  next\
+\}\
+\
+# =========================\
+# 
+\f2 2\uc0\u65039 \u8419 
+\f0  
+\f1 \'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 lead SNP\
+# =========================\
+ARGIND==2 \{\
+  lead[$1]=$2\
+  next\
+\}\
+\
+# =========================\
+# 
+\f2 3\uc0\u65039 \u8419 
+\f0  
+\f1 \'b5\'da\'c8\'fd\'b8\'f6\'ce\'c4\'bc\'fe\'a3\'ba\'d6\'f7\'ce\'c4\'bc\'fe
+\f0 \
+# =========================\
+ARGIND==3 \{\
+\
+  if (FNR==1) \{\
+    print $0, "lead_snp","intron_chr","intron_start","intron_end","sqtl_event","dist_start","dist_end"\
+    next\
+  \}\
+\
+  edsite=$1\
+  lead_snp = lead[edsite]\
+\
+  split(edsite,e,"_")\
+  ed_pos=e[2]\
+\
+  if (lead_snp in key) \{\
+\
+    n = split(key[lead_snp], arr, ";")\
+\
+    for (i=1; i<=n; i++) \{\
+\
+      if (arr[i]=="") continue\
+\
+      split(arr[i],x,":")\
+\
+      ichr=x[1]\
+      istart=x[2]\
+      iend=x[3]\
+      event=x[4]\
+\
+      dist_start = ed_pos - istart\
+      dist_end   = ed_pos - iend\
+\
+      print $0, lead_snp, ichr, istart, iend, event, dist_start, dist_end\
+    \}\
+\
+  \} else \{\
+    print $0, "NA","NA","NA","NA","NA","NA","NA"\
+  \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/edsite_lead_snp.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.annotated.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.with_distance_effcsize.txt\
+\
+###################################\
+\
+\cf2 #effect \uc0\u30456 \u20851 \u24615 \u20998 \u26512   \u65292 \u26377 NA \u25152 \u20197 \u35201 \u20808 \u21435 \u38500 \u19968 \u19979 \cf0 \
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/\
+awk -F'\\t' '\
+NR>1 && $14!="NA" && $20!="NA" \{\
+\
+  e = ($14<0 ? -$14 : $14)\
+  s = ($20<0 ? -$20 : $20)\
+\
+  print e >> "edqtl_effect_abs.txt"\
+  print s >> "sqtl_effect_abs.txt"\
+\}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.with_distance_effcsize.txt\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+#################################\
+\
+###
+\f1 \'b2\'bb\'be\'d6\'cf\'de\'d3\'da
+\f0  coloc  :\
+
+\f1 \'ce\'d2\'cf\'d6\'d4\'da\'b2\'bb\'cf\'eb
+\f0    
+\f1 \'be\'d6\'cf\'de\'d3\'da
+\f0  coloc 
+\f1 \'b5\'c4\'bd\'e1\'b9\'fb\'c1\'cb
+\f0  
+\f1 \'a3\'ac\'ce\'d2\'cf\'eb\'bf\'b4\'d4\'da\'cb\'f9\'d3\'d0\'b5\'c4
+\f0   edQTL 
+\f1 \'d3\'eb
+\f0 sQTL 
+\f1 \'cf\'d4\'d6\'f8\'b5\'c4\'bd\'e1\'b9\'fb\'d6\'d0\'a3\'ac\'d3\'d0\'c4\'c4\'d0\'a9
+\f0  snp 
+\f1 \'cd\'ac\'ca\'b1\'ca\'c7
+\f0 sqtl 
+\f1 \'ba\'cd
+\f0 edqtl 
+\f1 \'a3\'ac\'b2\'a2\'c7\'d2\'bb\'f9\'d2\'f2\'ca\'c7\'cd\'ac\'b8\'f6\'bb\'f9\'d2\'f2\'a3\'ac\'bc\'c6\'cb\'e3\'cb\'f9\'d3\'d0\'d5\'e2\'d6\'d6
+\f0   QTL
+\f1 \'b5\'f7\'bf\'d8
+\f0  edsite 
+\f1 \'c0\'eb
+\f0  sqtl 
+\f1 \'c4\'da\'ba\'ac\'d7\'d3\'c6\'f0\'ca\'bc\'ce\'bb\'d6\'c3\'ba\'cd\'d6\'d5\'d6\'b9\'ce\'bb\'d6\'c3\'be\'e0\'c0\'eb\'a3\'ac\'b2\'a2\'b1\'a3\'b4\'e6\'b6\'fe\'d5\'df\'d6\'c1\'c9\'d9\'d3\'d0\'d2\'bb\'be\'f8\'b6\'d4\'d6\'b5\'ca\'c7\'d0\'a1\'d3\'da
+\f0 200 bp 
+\f1 \'b5\'c4
+\f0   /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt   
+\f1 \'a3\'a8\'d5\'e2\'b8\'f6\'d0\'de\'b8\'c4\'c1\'cb\'d7\'a2\'ca\'cd\'c1\'d0\'b8\'fc\'ba\'c3\'d2\'bb\'d0\'a9\'a3\'a9
+\f0 \
+eGene   eSNP    snp_chr snp_pos beta    pvalue  q       repeat_element  genomic_annotation      gene_name\
+chr10_593056    10_548597_G_A   10      548597  0.367123        1.84864e-05     0.000439615795745295    -/-     intronic        DIP2C                 
+\f1 \'a3\'a8
+\f0 edsite 
+\f1 \'ca\'c7\'b5\'da\'d2\'bb\'c1\'d0
+\f0  
+\f1 \'a3\'ac\'a3\'a9
+\f0    #sQTL  (hg38)\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean \
+ENSG00000228794|1:826923:829003:clu_134430      1       826923  826923  +       2457    -57936  1_768987_T_C    1    768987   768987  5.50726e-06     0.0376252       0.375706        0       0.00133096723596796     LINC0112   
+\f1 \'a3\'a8\'c6\'f0\'ca\'bc\'d6\'d5\'d6\'b9\'ce\'bb\'d6\'c3\'b4\'d3\'b5\'da\'d2\'bb\'c1\'d0\'cc\'e1\'c8\'a1
+\f0   
+\f1 \'a3\'a9
+\f0     
+\f1 \'a1\'a3
+\f0   
+\f1 \'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'b5\'bd
+\f0   /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/        
+\f1 \'d0\'e8\'d2\'aa\'cb\'b5\'c3\'f7\'b5\'c4\'ca\'c7
+\f0   snp 
+\f1 \'ba\'cd\'bb\'f9\'d2\'f2\'cd\'ac\'ca\'b1\'cf\'e0\'cd\'ac\'b5\'c4\'d2\'b2\'b2\'bb\'d6\'b9\'d2\'bb\'d0\'d0\'a3\'ac\'d2\'f2\'ce\'aa
+\f0  
+\f1 \'d2\'bb\'b8\'f6\'bb\'f9\'d2\'f2\'d3\'d0\'ba\'dc\'b6\'e0
+\f0 site  
+\f1 \'ba\'cd\'c4\'da\'ba\'ac\'d7\'d3\'a1\'a3\'c1\'ed\'cd\'e2\'b1\'a3\'b4\'e6\'ce\'c4\'bc\'fe\'d6\'f7\'cc\'e5\'bb\'f9\'d3\'da
+\f0   edqtl 
+\f1 \'ce\'c4\'bc\'fe\'cb\'f9\'d3\'d0\'d0\'d0\'a3\'ac\'d4\'d9\'cc\'ed\'bc\'d3
+\f0  sQTL 
+\f1 \'b5\'f7\'bf\'d8\'b1\'ed\'d0\'cd\'b5\'c4\'c6\'f0\'ca\'bc\'d6\'d5\'d6\'b9\'ce\'bb\'d6\'c3\'a1\'a2\'be\'e0\'c0\'eb\'a1\'a2
+\f0 effctsize
+\f1 \'a3\'a8
+\f0 14
+\f1 \'c1\'d0\'a3\'a9
+\f0  
+\f1 \'a1\'a2
+\f0 p 
+\f1 \'d6\'b5\'a3\'a8
+\f0 12
+\f1 \'c1\'d0\'a3\'a9\'a1\'a2
+\f0 q 
+\f1 \'a3\'a8
+\f0 16
+\f1 \'c1\'d0\'a3\'a9
+\f0 \
+#################################\
+\
+awk -F'\\t' -v OFS='\\t' '\
+\
+# =========================\
+# 1\uc0\u65039 \u8419  sQTL\u65306 \u24314 \u31435  SNP+gene \u8594  intron \u20449 \u24687 \u32034 \u24341 \
+# =========================\
+NR==FNR \{\
+  snp  = $8\
+  gene = $NF\
+\
+  # \uc0\u35299 \u26512  intron \u21306 \u38388 \
+  split($1, a, "|")\
+  split(a[2], b, ":")\
+\
+  chr   = b[1]\
+  start = b[2]\
+  end   = b[3]\
+\
+  key = snp "|" gene\
+  info[key] = info[key] chr ":" start ":" end ":" $14 ":" $12 ":" $16 ";"\
+  next\
+\}\
+\
+# =========================\
+# 2\uc0\u65039 \u8419  edQTL \u20027 \u20307 \
+# =========================\
+FNR==1 \{\
+  print $0, "sqtl_chr", "sqtl_start", "sqtl_end", \\\
+             "sqtl_beta", "sqtl_p", "sqtl_q", \\\
+             "dist_start", "dist_end"\
+  next\
+\}\
+\
+\{\
+  edsite = $1\
+  snp    = $2\
+  gene   = $NF\
+\
+  # \uc0\u20174 \u31532 \u19968 \u21015 \u25552 \u21462  site_pos (\u20363 \u22914  chr10_593056 -> 593056)\
+  split(edsite, e, "_")\
+  ed_pos = e[2]\
+\
+  k = snp "|" gene\
+\
+  if (k in info) \{\
+    n = split(info[k], arr, ";")\
+    for (i=1; i<=n; i++) \{\
+      if (arr[i] == "") continue\
+\
+      split(arr[i], x, ":")\
+      ichr   = x[1]\
+      istart = x[2]\
+      iend   = x[3]\
+\
+      # \uc0\u35745 \u31639  edSite \u21040 \u20869 \u21547 \u23376 \u20004 \u31471 \u30340 \u30456 \u23545 \u36317 \u31163 \
+      d1 = ed_pos - istart\
+      d2 = ed_pos - iend\
+\
+      # \uc0\u11088  \u35745 \u31639 \u32477 \u23545 \u20540 \
+      abs_d1 = (d1 < 0) ? -d1 : d1\
+      abs_d2 = (d2 < 0) ? -d2 : d2\
+\
+      # \uc0\u11088  \u26680 \u24515 \u36807 \u28388 \u65306 \u21482 \u35201  edSite \u36317 \u31163 \u36215 \u22987 \u28857 \u25110 \u32456 \u27490 \u28857 \u12304 \u20219 \u19968 \u31471 \u12305 \u32477 \u23545 \u20540  <= 200bp\
+      if (abs_d1 <= 200 || abs_d2 <= 200) \{\
+        # \uc0\u36755 \u20986 \u21407 \u22987 \u34892  + sQTL\u20449 \u24687  + \u30456 \u23545 \u36317 \u31163 (\u24102 \u27491 \u36127 \u21495 \u65292 \u26041 \u20415 \u21518 \u32493 \u30475 \u19978 \u19979 \u28216 )\
+        print $0, ichr, istart, iend, x[4], x[5], x[6], d1, d2\
+      \}\
+    \}\
+  \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/snp/overlap/edqtl.significant.coloc.withAnno.clean.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/ed_sQTL_overlap_with_distance_200bp.txt\
+\
+\
+\
+\
+#################################\
+#RNA fold\
+\
+#
+\f1 \'d0\'e8\'d2\'aa\'d7\'bc\'b1\'b8\'b2\'ce\'bf\'bc\'bb\'f9\'d2\'f2\'d7\'e9
+\f0  
+\f1 \'a3\'ba
+\f0 hg38
+\f1 \'a3\'ac
+\f0 fasta 
+\f1 \'b8\'f1\'ca\'bd
+\f0   \
+\
+#edsite 
+\f1 \'c9\'cf\'cf\'c2
+\f0 100bp 
+\f1 \'b5\'c4\'c7\'f8\'d3\'f2
+\f0  bed 
+\f1 \'ce\'c4\'bc\'fe
+\f0 \
+\
+\
+\
+awk '\
+BEGIN\{OFS="\\t"\}\
+NR>1\{\
+  split($1,a,"_")\
+  chr="chr"a[1]   # 
+\f2 \uc0\u11088 
+\f0  
+\f1 \'bc\'d3
+\f0  chr\
+  pos=a[2]\
+\
+  start=pos-100\
+  if (start < 0) start=0\
+\
+  end=pos+100\
+\
+  print chr, start, end, $1\
+\}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 /site_coloc_4disease_summary.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/region.bed\
+\
+#########getfasta \
+\
+\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/region.bed \\\
+-name \\\
+-fo /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.fa\
+\
+##############  \
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/result/\
+\
+RNAfold \\\
+--maxBPspan=100 \\\
+--noLP \\\
+< /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.fa\
+\
+for f in *_ss.ps; do\
+  ps2pdf "$f" "$\{f%.ps\}.pdf"\
+done\
+#################################\
+\
+
+\f1 \'d2\'d4\'c9\'cf\'ce\'aa\'b1\'e0\'bc\'ad\'c7\'b0\'a3\'ac
+\f0 \
+A 
+\f3 \uc0\u8594 
+\f0  G   
+\f1 \'a3\'a8
+\f0 A-to-I
+\f1 \'a3\'a9
+\f0 \
+C 
+\f3 \uc0\u8594 
+\f0  T   
+\f1 \'a3\'a8
+\f0 C-to-U
+\f1 \'a3\'a9
+\f0 \
+
+\f1 \'d2\'d4\'cf\'c2\'ce\'aa\'b1\'e0\'bc\'ad\'ba\'f3\'a3\'ba
+\f0 \
+\
+\
+awk '\
+BEGIN\{OFS=""\}\
+\
+/^>/\{\
+  header=$0\
+  getline seq\
+\
+  base=substr(seq,101,1)\
+\
+  # A 
+\f3 \uc0\u8594 
+\f0  G\
+  if (base=="A" || base=="a") \{\
+    seq = substr(seq,1,100) "G" substr(seq,102)\
+  \}\
+  # C 
+\f3 \uc0\u8594 
+\f0  T\
+  else if (base=="C" || base=="c") \{\
+    seq = substr(seq,1,100) "T" substr(seq,102)\
+  \}\
+\
+  print header\
+  print seq\
+\}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.fa > /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.edited.fa\
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/result/
+\f1 \'b1\'e0\'bc\'ad\'ba\'f3
+\f0 /\
+RNAfold \\\
+--maxBPspan=100 \\\
+--noLP \\\
+< /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.edited.fa \\\
+> edit.structure.txt\
+\
+RNAfold \\\
+--maxBPspan=100 \\\
+--noLP \\\
+< /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.fa \\\
+> ref.structure.txt\
+\
+awk '\
+NR%3==1 \{\
+  gsub(/^>/,"",$0)\
+  id=$0\
+\}\
+NR%3==2 \{\
+  next\
+\}\
+NR%3==0 \{\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'bd\'e1\'b9\'b9\'a3\'a8\'b5\'da\'d2\'bb\'b6\'ce\'a3\'a9
+\f0 \
+  split($0, a, " ")\
+  struct=a[1]\
+\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'c4\'dc\'c1\'bf
+\f0 \
+  energy=a[length(a)]\
+  gsub(/[()]/,"",energy)\
+\
+  print id"\\t"struct"\\t"energy\
+\}\
+' ref.structure.txt > ref.clean.txt\
+\
+\
+awk '\
+NR%3==1 \{\
+  gsub(/^>/,"",$0)\
+  id=$0\
+\}\
+NR%3==2 \{\
+  next\
+\}\
+NR%3==0 \{\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'bd\'e1\'b9\'b9\'a3\'a8\'b5\'da\'d2\'bb\'b6\'ce\'a3\'a9
+\f0 \
+  split($0, a, " ")\
+  struct=a[1]\
+\
+  # 
+\f1 \'cc\'e1\'c8\'a1\'c4\'dc\'c1\'bf
+\f0 \
+  energy=a[length(a)]\
+  gsub(/[()]/,"",energy)\
+\
+  print id"\\t"struct"\\t"energy\
+\}\
+' edit.structure.txt > edit.clean.txt\
+\
+join -1 1 -2 1 \\\
+<(sort ref.clean.txt) \\\
+<(sort edit.clean.txt) \\\
+> merged.txt\
+\
+#tep 4
+\f1 \'a3\'ba\'bc\'c6\'cb\'e3
+\f0  \uc0\u916 G + 
+\f1 \'d6\'d0\'d0\'c4\'bd\'e1\'b9\'b9\'b1\'e4\'bb\'af
+\f0 \
+awk '\
+BEGIN\{OFS="\\t"\}\
+\{\
+  id=$1\
+\
+  ref_struct=$2\
+  ref_energy=$3\
+\
+  edit_struct=$4\
+  edit_energy=$5\
+\
+  deltaG = edit_energy - ref_energy\
+\
+  ref_base  = substr(ref_struct,101,1)\
+  edit_base = substr(edit_struct,101,1)\
+\
+  change = (ref_base != edit_base) ? 1 : 0\
+\
+  print id, ref_energy, edit_energy, deltaG, ref_base, edit_base, change\
+\}\
+' merged.txt > structure_change_summary.txt\
+\
+\
+###
+\f1 \'d5\'d2\'d2\'bb\'b8\'f6\'c0\'fd\'d7\'d3
+\f0 \
+\cf2 cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/ceshi/\
+\
+bash run_rnafold_pipeline.sh   edsite_list.txt    /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/ceshi\
+\cf0 \
+###\uc0\u31532 \u20108 \u20010 \u33050 \u26412 \
+\
+cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_200bp/\
+\
+bash  coloc_200.sh  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.with_distance.txt   /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_200bp\
+ps2pdf "/gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc/result/ref/chr4_51887200|51887200|51887244|51891760_ss.ps"\
+\
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_100bp/\
+\
+bash  run_rnafold_pipeline.sh  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.with_distance.txt   /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_100bp\
+\
+\
+ps2pdf "/gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_100bp/result/edit/chr4_51887200|51887200|51887244|51891760_ss.ps"\
+ps2pdf "/gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_coloc_100bp/result/ref/chr4_51887200|51887200|51887244|51891760_ss.ps"\
+\
+\cf2 ####\uc0\u25152 \u26377 \u30340 200bp \cf0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/ed_sQTL_overlap_with_distance_200bp.txt\
+\
+cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all/\
+bash  all.sh /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/ed_sQTL_overlap_with_distance_200bp.txt  /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all\
+\
+\
+ps2pdf "/gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all/result/edit/3744|chr19_46317289|46317289|46317198|4632_ss.ps"\
+ps2pdf "/gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all/result/ref/3744|chr19_46317289|46317289|46317198|4632_ss.ps"\
+\
+\
+\
+\
+\
+\cf3 ####\uc0\u25152 \u26377 \u30340 400bp \cf0 \
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all_200/\
+\
+bash  all_200.sh /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/ed_sQTL_overlap_with_distance_200bp.txt  /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/sQTL_all_200\
+\
+\
+\
+\
+\
+\
+\
+####
+\f1 \'b2\'e2\'ca\'d4
+\f0 \
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/result/
+\f1 \'b1\'e0\'bc\'ad\'ba\'f3
+\f0 /\
+grep -A1 "4_103735739" /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.fa \\\
+> ref_single.fa\
+\
+grep -A1 "4_103735739" /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/seq.edited.fa \\\
+> edit_single.fa\
+\
+\
+\
+\
+\
+RNAfold < ref_single.fa\
+mv 4_103735739_ss.ps ref.ps\
+RNAfold < edit_single.fa\
+mv 4_103735739_ss.ps edit.ps\
+ps2pdf ref.ps ref.pdf\
+ps2pdf edit.ps edit.pdf\
+$############################\
+$############################\
+$############################\
+$############################\uc0\u26816 \u26597 \
+$############################\
+$############################\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/rnafold/ceshi/\
+\
+echo -e "chr1\\t1731161\\t1731168" | \\\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed - \\\
+-fo stdout\
+\
+#g\cf3 g\cf0 tt\cf2 a\cf0 gg   to  g\cf3 g\cf0 ttggg\
+\
+\
+#chr14_100297024\
+#act\cf2 t\cf0 ga         act\cf2 a\cf0 ga\
+\
+echo -e "chr14\\t100297021\\t100297027" | \\\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed - \\\
+-fo stdout\
+\
+\
+\
+#chr6_147109043\
+\
+act\cf2 t\cf0 gga        act\cf2 c\cf0 gga\
+\
+\
+\
+echo -e "chr6\\t147109040\\t147109047\\t.\\t0\\t+" | \\\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed - \\\
+-s \\\
+-fo stdout\
+\
+\
+# \uc0\u27491 \u38142  +\
+\
+\
+# \uc0\u36127 \u38142  -\
+echo -e "chr14\\t100297021\\t100297027" | bedtools getfasta -fi hg38.fa -bed - -strand -\
+\
+tcc\cf2 a\cf0 agt   tcc\cf2 g\cf0 gt  \
+\
+\
+###aa\cf2 c\cf4 ct\cf0 c\
+echo -e "chr1\\t1731159\\t1731165\\t.\\t0\\t-" | \\\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed - \\\
+-s \\\
+-fo stdout\
+###gag\cf2 g\cf0 tt\
+echo -e "chr1\\t1731159\\t1731165\\t.\\t0\\t+" | \\\
+/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools getfasta \\\
+-fi /gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa \\\
+-bed - \\\
+-s \\\
+-fo stdout\
+##########################################################################################\
+##########################################################################################\
+#   /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withsQTL/result/meta_edsite_coloc_sig_075.with_distance.txt\
+\
+\
+\
+\
+\
+\
+##########################################################################################\
+###############\
+chr14_100297024\
+grep -F '100297024' /gpfs/hpc/home/chenchao/mayinuo/edqtl/vsQTL/sqtl.nominal.chrall.sig.symbol.clean\
+###########\
+\
+awk '\{print $5\}' eqtl.nominal.chr12     | sort | uniq -c\
+\
+\
+}

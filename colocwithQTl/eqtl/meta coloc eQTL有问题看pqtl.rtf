@@ -1,0 +1,1859 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;\red251\green2\blue7;\red253\green128\blue8;\red164\green8\blue3;
+}
+{\*\expandedcolortbl;;\cssrgb\c100000\c14913\c0;\cssrgb\c100000\c57637\c0;\cssrgb\c71055\c10387\c0;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww18560\viewh16660\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 ###########################\
+# ----------------------------------------------------------------------\
+# 1. 
+\f1 \'bc\'d3\'d4\'d8\'bf\'e2\'ba\'cd\'c9\'e8\'d6\'c3\'bb\'b7\'be\'b3
+\f0 \
+\
+
+\f1 \'b4\'cf\'bd\'e3\'d7\'dc\'b5\'c4\'d6\'bb\'d3\'d0\'cf\'d4\'d6\'f8\'bd\'e1\'b9\'fb\'a3\'ac\'cb\'f9\'d2\'d4\'ce\'d2\'d0\'e8\'d2\'aa\'d7\'d4\'bc\'ba\'ba\'cf\'b3\'c9\'d2\'bb\'ca\'d6
+\f0 \
+/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results/eqtl.nominal.chrall.sig\
+significantQTL(
+\f1 \'c6\'e4\'ca\'b5\'d3\'c3\'b2\'bb\'c9\'cf
+\f0 ):\
+/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results/eqtl.nominal.chrall.sig\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf2 ENSG00000227232 1 14405 29570 - 637 -766768 1_796338_T_C 1 796338 796338 0.00298959 0.016601 0.277603 0.0930714 0\
+ENSG00000227232 1 14405 29570 - 637 -767082 1_796652_A_C 1 796652 796652 0.00298959 0.016601 0.277603 0.0930714 0\cf0 \
+\
+\
+\
+cat > merge_eqtl_nominal.sh << 'EOF'\
+#!/usr/bin/env bash\
+\
+IN_DIR="/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results"\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL"\
+OUT_FILE="$\{OUT_DIR\}/eqtl.nominal.chrall.txt"\
+\
+mkdir -p "$OUT_DIR"\
+\
+for i in $(seq 1 22); do\
+    FILE="$\{IN_DIR\}/eqtl.nominal.chr$\{i\}"\
+    if [ -f "$FILE" ]; then\
+        if [ "$i" -eq 1 ]; then\
+            cat "$FILE" > "$OUT_FILE"\
+        else\
+            tail -n +2 "$FILE" >> "$OUT_FILE"\
+        fi\
+        echo "Finished processing Chr$\{i\}"\
+    else\
+        echo "Warning: $FILE not found!"\
+    fi\
+done\
+EOF\
+\
+#
+\f1 \'cf\'c8\'d0\'b4\'bd\'c5\'b1\'be\'a3\'ac\'c8\'bb\'ba\'f3\'d4\'cb\'d0\'d0
+\f0 \
+cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL\
+bash merge_eqtl_nominal.sh\
+\
+#
+\f1 \'d6\'bb\'b1\'a3\'c1\'f4\'d0\'e8\'d2\'aa\'d0\'d0
+\f0 \
+awk 'BEGIN\{OFS="\\t"\}\
+NR==1\{\
+  print "eGene","eSNP","snp_chr","snp_pos","maf","pvalue"\
+  next\
+\}\
+\{\
+  print $1,$8,$9,$10,$12,$13\
+\}' eqtl.nominal.chrall.txt \\\
+> eqtl.nominal.for_coloc.txt\
+\
+\
+#  
+\f1 \'d5\'e2\'c0\'ef\'d0\'e8\'d2\'aa\'cf\'c8\'bc\'ec\'b2\'e9\'d2\'bb\'cf\'c2\'ca\'c7
+\f0 hg 19
+\f1 \'b5\'c4
+\f0  
+\f1 \'bb\'b9\'ca\'c7
+\f0  hg38
+\f1 \'b5\'c4
+\f0   
+\f1 \'d6\'bb\'d3\'d0
+\f0 343
+\f1 \'d6\'d8\'b8\'b4\'b5\'c4\'d3\'a6\'b8\'c3\'ca\'c7
+\f0 hg38
+\f1 \'b5\'c4
+\f0 \
+#
+\f1 \'d7\'aa\'bb\'af\'a3\'ba
+\f0 \
+INPUT_EQTL="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.txt"\
+OUTDIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19"\
+CHAIN="/gpfs/hpc/home/chenchao/mayinuo/hg38/GRCh38_to_GRCh37.chain"\
+\
+mkdir -p "$OUTDIR"\
+\
+awk -F'\\t' 'NR>1 \{print $2\}' "$INPUT_EQTL" | \\\
+sort -u | \\\
+awk -F'_' -v OFS='\\t' '\{\
+    chr=$1; pos=$2;\
+    if(chr !~ /^chr/) chr="chr"chr;\
+    print chr, pos-1, pos, $0;\
+\}' > "$OUTDIR/eqtl_snp_hg38.bed"\
+\
+liftOver \\\
+  "$OUTDIR/eqtl_snp_hg38.bed" \\\
+  "$CHAIN" \\\
+  "$OUTDIR/eqtl_snp_hg19_SUCCESS.bed" \\\
+  "$OUTDIR/eqtl_snp_hg19_FAILED.txt"\
+\
+awk -v OFS='\\t' '\{\
+    old=$4;\
+    split(old, a, "_");          # chr pos ref alt\
+    new_pos=$3;\
+    new_id=a[1]"_"new_pos"_"a[3]"_"a[4];\
+    print old, new_id;\
+\}' "$OUTDIR/eqtl_snp_hg19_SUCCESS.bed" \\\
+> "$OUTDIR/map_eqtl_snp_hg38_to_hg19.txt"\
+\
+MAP="$OUTDIR/map_eqtl_snp_hg38_to_hg19.txt"\
+OUT_EQTL="$OUTDIR/eqtl.nominal.for_coloc.hg19.txt"\
+\
+awk -F'\\t' -v OFS='\\t' '\
+    FNR==NR \{ map[$1]=$2; next \}\
+\
+    NR==1 \{\
+        print $0;\
+        next\
+    \}\
+\
+    \{\
+        old_snp=$2;\
+        if(!(old_snp in map)) next;\
+\
+        new_snp=map[old_snp];\
+        split(new_snp, a, "_");\
+\
+        $2 = new_snp;   # eSNP\
+        $3 = a[1];      # snp_chr\
+        $4 = a[2];      # snp_pos\
+\
+        print $0;\
+    \}\
+' "$MAP" "$INPUT_EQTL" > "$OUT_EQTL"\
+\
+#
+\f1 \'bc\'d3\'bb\'d8\'b1\'ed\'cd\'b7
+\f0 \
+sed -i '1i\\eGene\\teSNP\\tsnp_chr\\tsnp_pos\\tmaf\\tpvalue' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt \
+\
+\
+#\cf2 eqtl  
+\f1 \'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe
+\f0   :/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt \cf0 \
+\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+library(snpStats)\
+library(BiocManager)\
+library(coloc)\
+library(reshape2)\
+library(parallel) # 
+\f1 \'d3\'c3\'d3\'da\'ba\'f3\'d0\'f8\'b2\'a2\'d0\'d0\'bc\'c6\'cb\'e3
+\f0 \
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/")\
+\
+# ----------------------------------------------------------------------\
+# 2. 
+\f1 \'bc\'d3\'d4\'d8\'ca\'fd\'be\'dd\'ce\'c4\'bc\'fe
+\f0 \
+gwas <- read.table(\
+  "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt",\
+  header = TRUE,\
+  stringsAsFactors = FALSE\
+)\
+stopifnot(all(c("eGene","eSNP","snp_chr","snp_pos","pvalue") %in% colnames(gwas)))\
+\
+# Freq  
+\f1 \'b5\'bd
+\f0   maf\
+gwas$maf <- ifelse(gwas$maf > 0.5, 1 - gwas$maf , gwas$maf )\
+gwas_save <- gwas\
+\
+\
+# ----------------------------------------------------------------------\
+\
+## A. eQTL 
+\f1 \'d1\'ad\'bb\'b7\'d2\'c0\'be\'dd\'ce\'c4\'bc\'fe
+\f0  (FDR 
+\f1 \'b9\'fd\'c2\'cb\'ba\'f3\'b5\'c4\'cf\'d4\'d6\'f8
+\f0  edSite 
+\f1 \'c1\'d0\'b1\'ed
+\f0 )\
+# 
+\f1 \'d3\'c3\'d3\'da\'c8\'b7\'b6\'a8\'d2\'aa\'b7\'d6\'ce\'f6\'b5\'c4
+\f0  edSite 
+\f1 \'c1\'d0\'b1\'ed
+\f0 \
+eqtl_sig <- read.table(\
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/
+\f1 \'c4\'e6\'b7\'bd\'b2\'ee\'bc\'d3\'c8\'a8
+\f0 /metal_results_hg38/hg19/all_significant_classified_hg19.txt", \
+    as.is=T\
+)\
+eqtl_sig$eGene <- eqtl_sig$V1 # edsite ID\
+\
+# B. eQTL 
+\f1 \'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'ce\'c4\'bc\'fe
+\f0  (
+\f1 \'ce\'b4\'b9\'fd\'c2\'cb\'b5\'c4
+\f0  SNP 
+\f1 \'bb\'e3\'d7\'dc\'cd\'b3\'bc\'c6
+\f0 )\
+# 
+\f1 \'d3\'c3\'d3\'da\'cc\'e1\'c8\'a1\'c7\'f8\'d3\'f2\'c4\'da\'b5\'c4\'cb\'f9\'d3\'d0
+\f0  SNP 
+\f1 \'ca\'fd\'be\'dd
+\f0  (pvalues, eSNP, N)\
+eqtl_full <- read.table(\
+   file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/
+\f1 \'c4\'e6\'b7\'bd\'b2\'ee\'bc\'d3\'c8\'a8
+\f0 /metal_results_hg38/hg19_all/all_merged_classified.allele_fixed_hg19.txt", \
+    as.is=T\
+)\
+#\cf3  
+\f1 \'bc\'d9\'c9\'e8\'c8\'ab\'ce\'c4\'bc\'fe
+\f0  V1=eGene, V2=eSNP, V11=p.value, V9=N   
+\f1 \'a3\'ac
+\f0 \cf0 \
+eqtl_full$eGene <- eqtl_full$V1\
+eqtl_full$eSNP <- eqtl_full$V2\
+eqtl_full$p.value <- eqtl_full$V11 \
+\
+# C. GWAS 
+\f1 \'ca\'fd\'be\'dd\'ce\'c4\'bc\'fe
+\f0  (
+\f1 \'b1\'a3\'b3\'d6\'b2\'bb\'b1\'e4
+\f0 )\
+\cf3 gwas = gwas_save \cf0 \
+\
+# ----------------------------------------------------------------------\
+# 3. 
+\f1 \'bd\'e2\'ce\'f6
+\f0  CHR/POS 
+\f1 \'d0\'c5\'cf\'a2
+\f0  (
+\f1 \'d6\'bb\'b6\'d4\'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'ba\'cd
+\f0 GWAS
+\f1 \'bd\'f8\'d0\'d0\'d2\'bb\'b4\'ce\'bd\'e2\'ce\'f6
+\f0 )\
+# ----------------------------------------------------------------------\
+\
+# 
+\f1 \'b4\'d3
+\f0  eQTL 
+\f1 \'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'bd\'e2\'ce\'f6
+\f0  edSite 
+\f1 \'b5\'c4
+\f0  CHR/POS
+\f1 \'a3\'ac\'d3\'c3\'d3\'da\'b4\'b0\'bf\'da\'d6\'d0\'d0\'c4
+\f0 \
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))\
+eqtl_full$site_chr <- as.integer(tmp_site[, 1])\
+eqtl_full$site_pos <- as.integer(tmp_site[, 2])\
+\
+# 
+\f1 \'b4\'d3
+\f0  eQTL 
+\f1 \'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'bd\'e2\'ce\'f6
+\f0  eSNP 
+\f1 \'b5\'c4
+\f0  CHR/POS
+\f1 \'a3\'ac\'d3\'c3\'d3\'da\'ba\'f3\'d0\'f8\'bf\'c9\'c4\'dc\'b5\'c4\'c7\'f8\'d3\'f2\'b9\'fd\'c2\'cb\'a3\'a8\'bf\'c9\'d1\'a1\'a3\'a9
+\f0 \
+tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))\
+eqtl_full$snp_chr <- as.integer(tmp_snp[, 1])\
+eqtl_full$snp_pos <- as.integer(tmp_snp[, 2])\
+\
+\
+# ----------------------------------------------------------------------\
+# 4. 
+\f1 \'b6\'a8\'d2\'e5\'b9\'b2\'b6\'a8\'ce\'bb\'ba\'af\'ca\'fd
+\f0  (
+\f1 \'cf\'d6\'d4\'da\'ca\'b9\'d3\'c3
+\f0  eqtl_full 
+\f1 \'bd\'f8\'d0\'d0\'ca\'fd\'be\'dd\'cc\'e1\'c8\'a1
+\f0 )\
+# ----------------------------------------------------------------------\
+window <- 500000\
+#"1_10451955" "1_10452114" "1_10517313" "1_10518052" "1_10519002"\
+#
+\f1 \'b2\'e2\'ca\'d4
+\f0  site_id= "1_10519874"\
+\
+run_one_edsite <- function(site_id) \{\
+\
+    ## -------------------------\
+    ## 1. 
+\f1 \'c8\'b7\'b6\'a8
+\f0  edSite 
+\f1 \'d6\'d0\'d0\'c4\'ba\'cd\'c7\'f8\'d3\'f2
+\f0 \
+    ## -------------------------\
+    # 
+\f1 \'b4\'d3\'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'d6\'d0\'bb\'f1\'c8\'a1\'b8\'c3
+\f0  edSite 
+\f1 \'b5\'c4\'c8\'ce\'d2\'e2\'d2\'bb\'d0\'d0\'c0\'b4\'c8\'b7\'b6\'a8\'d6\'d0\'d0\'c4\'d7\'f8\'b1\'ea
+\f0 \
+    edsite_info <- eqtl_full[eqtl_full$eGene == site_id, ][1, ]\
+\
+    # 
+\f1 \'bc\'ec\'b2\'e9\'ca\'c7\'b7\'f1\'c4\'dc\'d5\'d2\'b5\'bd\'d7\'f8\'b1\'ea
+\f0 \
+    if (is.na(edsite_info$site_chr)) return(NULL)\
+\
+    chr_k <- edsite_info$site_chr\
+    pos_k <- edsite_info$site_pos\
+\
+    region_start <- pos_k - window\
+    region_end 	 <- pos_k + window\
+\
+    ## -------------------------\
+    ## 2. eQTL: 
+\f1 \'b4\'d3
+\f0  'eqtl_full' 
+\f1 \'d6\'d0\'cc\'e1\'c8\'a1
+\f0  edSite \'b1window 
+\f1 \'c4\'da\'b5\'c4\'cb\'f9\'d3\'d0
+\f0  SNP\
+    ## -------------------------\
+    # 
+\f1 \'b9\'fd\'c2\'cb\'cc\'f5\'bc\'fe\'a3\'ba\'c6\'a5\'c5\'e4
+\f0  edSite ID  AND 
+\f1 \'ce\'bb\'b5\'e3\'d4\'da\'b4\'b0\'bf\'da\'c4\'da
+\f0 \
+    eqtl_reg <- eqtl_full[\
+        eqtl_full$eGene == site_id &\
+        eqtl_full$snp_chr == chr_k &\
+        eqtl_full$snp_pos >= region_start &\
+        eqtl_full$snp_pos <= region_end,\
+    ]\
+    \
+\
+\
+    if (nrow(eqtl_reg) < 2) return(NULL)\
+\
+    ## -------------------------\
+\cf3     ## 3. GWAS
+\f1 \'a3\'ba\'c8\'a1
+\f0  edsite \'b1window\
+    ## -------------------------\
+    gwas_reg <- gwas[\
+        gwas$snp_chr == chr_k &\
+        gwas$snp_pos >= region_start &\
+        gwas$snp_pos <= region_end,\
+    ]\
+   \cf0 \
+    if (nrow(gwas_reg) < 5) return(NULL)\
+\
+    ## -------------------------\
+    ## 4. SNP 
+\f1 \'bd\'bb\'bc\'af\'d3\'eb\'b6\'d4\'c6\'eb
+\f0  (
+\f1 \'b9\'d8\'bc\'fc
+\f0 )\
+    ## -------------------------\
+    snps_common <- intersect(gwas_reg$eSNP, eqtl_reg$eSNP)\
+\
+    if (length(snps_common) < 2) return(NULL) # 
+\f1 \'b1\'d8\'d0\'eb\'d3\'d0\'d7\'e3\'b9\'bb
+\f0  SNP\
+\
+    ## 
+\f1 \'b1\'a3\'d6\'a4\'cb\'b3\'d0\'f2\'cd\'ea\'c8\'ab\'d2\'bb\'d6\'c2
+\f0 \
+    gwas_use <- gwas_reg[match(snps_common, gwas_reg$eSNP), ]\
+    eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+\
+    ## -------------------------\
+    ## 5. coloc (
+\f1 \'b4\'fa\'c2\'eb\'b1\'a3\'b3\'d6\'b2\'bb\'b1\'e4
+\f0 )\
+     ##500199(170756\
+    ## -------------------------\
+    coloc_res <- coloc.abf(\
+        dataset1 = list(\
+            pvalues = gwas_use$pvalue, type = "quant", N = 546, snp = snps_common\
+        ),\
+        dataset2 = list(\
+            pvalues = eqtl_use$p.value, type = "quant", N = 975, snp = snps_common\
+        ),\
+        MAF = gwas_use$maf\
+    )\
+\
+    ## -------------------------\
+    ## 6. 
+\f1 \'b7\'b5\'bb\'d8\'bd\'e1\'b9\'fb
+\f0 \
+    ## -------------------------\
+    data.frame(\
+        edsite = site_id, chr = chr_k, pos = pos_k,\
+        nsnps = coloc_res$summary["nsnps"],\
+        PP.H0 = coloc_res$summary["PP.H0.abf"], PP.H1 = coloc_res$summary["PP.H1.abf"], \
+        PP.H2 = coloc_res$summary["PP.H2.abf"], PP.H3 = coloc_res$summary["PP.H3.abf"], \
+        PP.H4 = coloc_res$summary["PP.H4.abf"]\
+    )\
+\}\
+\
+# ----------------------------------------------------------------------\
+# 5. 
+\f1 \'b2\'a2\'d0\'d0\'d6\'b4\'d0\'d0\'ba\'cd\'bd\'e1\'b9\'fb\'b4\'a6\'c0\'ed
+\f0  (
+\f1 \'d3\'eb\'d6\'ae\'c7\'b0\'cf\'e0\'cd\'ac
+\f0 )\
+# ----------------------------------------------------------------------\
+unique_edsites <- unique(eqtl_sig$eGene) # 
+\f1 \'c8\'d4\'c8\'bb\'ca\'b9\'d3\'c3\'cf\'d4\'d6\'f8\'c1\'d0\'b1\'ed\'d7\'f7\'ce\'aa\'d1\'ad\'bb\'b7\'d2\'c0\'be\'dd
+\f0 \
+\
+ncore <- 20 # 
+\f1 \'bc\'d9\'c9\'e8\'b7\'d6\'c5\'e4\'c1\'cb
+\f0  20 
+\f1 \'b8\'f6\'ba\'cb\'d0\'c4
+\f0 \
+\
+message(paste("Starting colocalization analysis on", length(unique_edsites), "edsites using", ncore, "cores..."))\
+\
+results_list <- mclapply(\
+    unique_edsites,             \
+    run_one_edsite,             \
+    mc.cores = ncore\
+)\
+\
+# 
+\f1 \'bd\'e1\'b9\'fb\'ba\'cf\'b2\'a2\'a1\'a2\'c7\'e5\'c0\'ed\'ba\'cd\'c5\'c5\'d0\'f2
+\f0 \
+results_list_cleaned <- results_list[!sapply(results_list, is.null)]\
+results_df <- do.call(rbind, results_list_cleaned)\
+\
+# 
+\f1 \'ca\'e4\'b3\'f6
+\f0  Top 20 
+\f1 \'ba\'cd\'ce\'c4\'bc\'fe
+\f0 \
+results_df$PP.H4.abf <- as.numeric(as.character(results_df$PP.H4))\
+sorted_results <- results_df[order(results_df$PP.H4.abf, decreasing = TRUE), ]\
+top_20_pph4 <- head(sorted_results, 20)\
+print("--- PP.H4.abf 
+\f1 \'d7\'ee\'b4\'f3\'b5\'c4
+\f0  Top 20 
+\f1 \'b9\'b2\'b6\'a8\'ce\'bb\'b9\'d8\'c1\'aa
+\f0  (
+\f1 \'bb\'f9\'d3\'da\'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd
+\f0 ) ---")\
+print(top_20_pph4)\
+\
+write.table(results_df, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_all_results_full_data.txt", sep="\\t", row.names=F, quote=F)\
+# ... (
+\f1 \'ca\'a1\'c2\'d4\'cf\'d4\'d6\'f8\'bd\'e1\'b9\'fb\'ca\'e4\'b3\'f6\'b2\'bf\'b7\'d6
+\f0 )\
+\
+\
+# 
+\f1 \'bc\'d9\'c9\'e8\'cf\'d4\'d6\'f8\'d0\'d4\'e3\'d0\'d6\'b5\'c8\'d4\'ce\'aa
+\f0  0.75     144     0.8   68 \
+sig_cutoff <- 0.8\
+sig_summary <- sorted_results[sorted_results$PP.H4.abf > sig_cutoff, ]\
+write.table(sig_summary, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_08.summary.txt", sep="\\t", row.names=F, quote=F)\
+\
+sig_cutoff <- 0.75\
+sig_summary <- sorted_results[sorted_results$PP.H4.abf > sig_cutoff, ]\
+write.table(sig_summary, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt", sep="\\t", row.names=F, quote=F)\
+\
+#
+\f1 \'d5\'e2\'c0\'ef\'d2\'f2\'ce\'aa\'ca\'fd\'c1\'bf\'cc\'ab\'b6\'e0\'ce\'d2\'b8\'c4\'b3\'c9\'c1\'cb\'d6\'bb\'bb\'ad\'c7\'b0
+\f0 20\
+\cf3 sig_genes_list <- (top_20_pph4$edsite)\cf0 \
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/")\
+source("locus.R")\
+##################
+\f1 \'cc\'e1\'c8\'a1
+\f0 snp 
+\f1 \'ba\'cd\'bf\'c9\'ca\'d3\'bb\'af
+\f0 \
+library(qvalue)\
+library(ggplot2)\
+library(coloc)\
+library(dplyr)\
+library(gridExtra)\
+library(data.table)\
+\
+# =======================================================\
+# 2. Locus 
+\f1 \'bf\'c9\'ca\'d3\'bb\'af
+\f0  (
+\f1 \'b2\'ce\'ca\'fd\'cd\'b3\'d2\'bb\'d3\'eb\'ca\'fd\'be\'dd\'d5\'fb\'ba\'cf
+\f0 )\
+# =======================================================\
+\
+# ... (
+\f1 \'cd\'bc\'c6\'ac\'b1\'a3\'b4\'e6\'c4\'bf\'c2\'bc\'ba\'cd
+\f0  top_genes 
+\f1 \'c9\'b8\'d1\'a1\'c2\'df\'bc\'ad\'b1\'a3\'b3\'d6\'b2\'bb\'b1\'e4
+\f0 ) ...\
+plot_dir="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/"\
+\
+top_genes=sig_genes_list\
+if (length(top_genes) > 0) \{\
+    \
+    for (gene in top_genes) \{\
+        \
+        # --- 
+\f1 \'b9\'d8\'bc\'fc\'d5\'fb\'ba\'cf\'a3\'ba\'ca\'fd\'be\'dd\'cc\'e1\'c8\'a1\'ba\'cd\'b6\'d4\'c6\'eb
+\f0  (
+\f1 \'d3\'eb\'c9\'cf\'b7\'bd\'c2\'df\'bc\'ad\'d2\'bb\'d6\'c2
+\f0 ) ---\
+        # 1. 
+\f1 \'c8\'b7\'b6\'a8
+\f0  edSite 
+\f1 \'d6\'d0\'d0\'c4\'ba\'cd\'c7\'f8\'d3\'f2
+\f0 \
+        edsite_info <- eqtl_full[eqtl_full$eGene == gene, ][1, ]\
+        if (is.na(edsite_info$site_chr)) next\
+        chr_k <- edsite_info$site_chr\
+        pos_k <- edsite_info$site_pos\
+        region_start <- pos_k - window\
+        region_end <- pos_k + window\
+\
+        # 2. 
+\f1 \'cc\'e1\'c8\'a1
+\f0  eQTL/edQTL 
+\f1 \'ca\'fd\'be\'dd
+\f0 \
+        eqtl_reg <- eqtl_full[\
+            eqtl_full$eGene == gene & eqtl_full$snp_chr == chr_k & eqtl_full$snp_pos >= region_start & eqtl_full$snp_pos <= region_end,\
+        ]\
+        \
+        # 3. 
+\f1 \'cc\'e1\'c8\'a1
+\f0  GWAS 
+\f1 \'ca\'fd\'be\'dd
+\f0 \
+        gwas_reg <- gwas[\
+            gwas$snp_chr == chr_k & gwas$snp_pos >= region_start & gwas$snp_pos <= region_end,\
+        ]\
+\
+        # 4. SNP 
+\f1 \'bd\'bb\'bc\'af\'d3\'eb\'b6\'d4\'c6\'eb
+\f0 \
+        snps_common <- intersect(gwas_reg$eSNP, eqtl_reg$eSNP)\
+        if (length(snps_common) < 2) next\
+\
+        gwas_use <- gwas_reg[match(snps_common, gwas_reg$eSNP), ]\
+        eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+        \
+        # 5. 
+\f1 \'d6\'d8\'d0\'c2\'d4\'cb\'d0\'d0
+\f0  coloc\
+        res <- coloc.abf(\
+            dataset1 = list(pvalues = gwas_use$pval, type = "quant", N = 546, snp = snps_common),\
+            dataset2 = list(pvalues = eqtl_use$p.value, type = "quant", N = 975, snp = snps_common),\
+            MAF = gwas_use$maf\
+        )\
+            \
+        snp_info <- res$results # 
+\f1 \'b0\'fc\'ba\'ac
+\f0  snp 
+\f1 \'ba\'cd
+\f0  SNP.PP.H4 
+\f1 \'c1\'d0
+\f0 \
+        \
+        # --- 6. 
+\f1 \'d5\'fb\'c0\'ed\'bb\'e6\'cd\'bc\'ca\'fd\'be\'dd
+\f0  (
+\f1 \'ca\'b9\'d3\'c3\'bd\'bb\'bc\'af\'bd\'e1\'b9\'fb
+\f0 ) ---\
+        plot_df <- data.frame(\
+            eSNP = snps_common,\
+            BP = gwas_use$snp_pos, # 
+\f1 \'ca\'b9\'d3\'c3
+\f0  GWAS 
+\f1 \'b5\'c4\'ce\'bb\'d6\'c3\'d0\'c5\'cf\'a2\'d7\'f7\'ce\'aa
+\f0  X 
+\f1 \'d6\'e1
+\f0 \
+            GWAS_P = gwas_use$pval,\
+            EQTL_P = eqtl_use$p.value\
+        )\
+        \
+        # 
+\f1 \'bd\'ab
+\f0  SNP.PP.H4 
+\f1 \'ba\'cf\'b2\'a2\'bb\'d8\'bb\'e6\'cd\'bc\'ca\'fd\'be\'dd, by.y = "snp" \'d0\'e8\'d2\'aa\'c8\'b7\'b6\'a8
+\f0 \
+   \cf3      plot_df <- merge(plot_df, snp_info[, c("snp", "SNP.PP.H4")], by.x = "eSNP", by.y = "snp")\cf0 \
+        \
+        # 
+\f1 \'d7\'aa\'bb\'bb\'ce\'aa
+\f0  Mb 
+\f1 \'b5\'a5\'ce\'bb
+\f0 \
+        plot_df$BP_Mb <- plot_df$BP / 1e6\
+        plot_df$SNP.PP.H4[is.na(plot_df$SNP.PP.H4)] <- 0\
+        \
+        # --- 2.4 
+\f1 \'ca\'b9\'d3\'c3
+\f0  ggplot2 
+\f1 \'bb\'e6\'cd\'bc
+\f0  ---\
+        \
+        # 
+\f1 \'b6\'a8\'d2\'e5\'d7\'d3\'cd\'bc
+\f0  1: GWAS\
+# --- 1. 
+\f1 \'ca\'b6\'b1\'f0\'b8\'c3\'c7\'f8\'d3\'f2\'b5\'c4
+\f0  Top SNP ---\
+# 
+\f1 \'d5\'d2\'b5\'bd
+\f0  SNP.PP.H4 
+\f1 \'d7\'ee\'b4\'f3\'b5\'c4\'c4\'c7\'d2\'bb\'d0\'d0
+\f0 \
+top_snp_row <- plot_df[which.max(plot_df$SNP.PP.H4), ]\
+top_snp_id <- top_snp_row$eSNP\
+\
+# 
+\f1 \'d6\'d8\'d0\'c2\'b6\'d4
+\f0  plot_df 
+\f1 \'c5\'c5\'d0\'f2\'a3\'ac\'c8\'b7\'b1\'a3
+\f0  PP.H4 
+\f1 \'b4\'f3\'b5\'c4\'b5\'e3\'d7\'ee\'ba\'f3\'bb\'ad\'a3\'a8\'bb\'ad\'d4\'da\'d7\'ee\'c9\'cf\'b2\'e3\'a3\'a9
+\f0 \
+plot_df <- plot_df %>% arrange(SNP.PP.H4)\
+\
+# --- 2. 
+\f1 \'b6\'a8\'d2\'e5\'d7\'d3\'cd\'bc
+\f0  1: GWAS ---\
+p1 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(GWAS_P))) +\
+    # 
+\f1 \'bb\'ad\'b1\'b3\'be\'b0\'b5\'e3
+\f0 \
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +\
+    # 
+\f1 \'d7\'a8\'c3\'c5\'b8\'f8
+\f0  Top SNP 
+\f1 \'bb\'ad\'d2\'bb\'b8\'f6\'b4\'f3\'c1\'e2\'d0\'ce
+\f0 \
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(GWAS_P)), \
+               color = "red", shape = 18, size = 6) + \
+    # 
+\f1 \'b1\'ea\'d7\'a2
+\f0  Top SNP 
+\f1 \'b5\'c4
+\f0  ID\
+    geom_text(data = top_snp_row, aes(label = eSNP), \
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +\
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +\
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+    expand_limits(y = max(-log10(plot_df$GWAS_P)) * 1.2) + # 
+\f1 \'c1\'f4\'b3\'f6\'ce\'c4\'d7\'d6\'bf\'d5\'bc\'e4
+\f0 \
+    labs(title = paste0(gene, " - eQTL Signal"), y = "-log10(eQTL P)", x = NULL) +\
+    theme_bw() + theme(legend.position = "right", axis.text.x = element_blank())\
+\
+# --- 3. 
+\f1 \'b6\'a8\'d2\'e5\'d7\'d3\'cd\'bc
+\f0  2: edQTL ---\
+p2 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(EQTL_P))) +\
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +\
+    # 
+\f1 \'cd\'ac\'d1\'f9\'b8\'f8
+\f0  edQTL 
+\f1 \'cd\'bc\'d2\'b2\'b1\'ea\'b3\'f6
+\f0  Top SNP\
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(EQTL_P)), \
+               color = "red", shape = 18, size = 6) +\
+    geom_text(data = top_snp_row, aes(label = eSNP), \
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +\
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +\
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+    expand_limits(y = max(-log10(plot_df$EQTL_P)) * 1.2) +\
+    labs(title = paste0(gene, " - edQTL Signal"), \
+         y = "-log10(edQTL P)", x = paste("Position on Chr (Mb)")) +\
+    theme_bw() + theme(legend.position = "right")\
+\
+\
+            \
+        # --- 2.5 
+\f1 \'c6\'b4\'cd\'bc\'b2\'a2\'b1\'a3\'b4\'e6
+\f0  ---\
+       safe_gene_name <- gsub("[:/]", "_", gene)\
+        out_file <- paste0(plot_dir, safe_gene_name, "_LocusPlot.pdf")\
+        \
+        final_plot <- grid.arrange(p1, p2, ncol = 1, heights = c(1, 1))\
+        \
+        # 
+\f1 \'ca\'b9\'d3\'c3
+\f0  ggsave 
+\f1 \'b1\'a3\'b4\'e6\'c6\'b4\'ba\'cf\'b5\'c4\'cd\'bc
+\f0 \
+        ggsave(filename = out_file, plot = final_plot, width = 8, height = 8)\
+    \}\
+    \
+    cat("Done! All plots saved to:", plot_dir, "\\n")\
+    \
+\} else \{\
+    cat("No edSites passed the threshold (PP.H4 > 0.75).\\n")\
+\}\
+\
+\
+\
+################################\
+library(locusplotr)  
+\f1 \'bf\'c9\'ca\'d3\'bb\'af\
+\
+edsite:\
+13_67715485\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0 \cf0 top snp:13_67715455_C_T\
+###############################\
+\
+\
+library(devtools)\
+library(locusplotr)\
+library(tidyverse)\
+library(tidyr)\
+\
+gwas <- read.table(\
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt", \
+    header=T\
+)\
+gwas$maf <- ifelse(gwas$maf>0.5, 1-gwas$maf, gwas$maf)\
+\
+gwas <- gwas %>%\
+  separate(eSNP, into = c(NA, NA, "ref", "alt"), sep = "_", remove = FALSE)\
+\
+head(gwas)\
+\
+# 7_137070298_G_A    0.094121971364096\
+#7_137071339_C_T     0.085705385792180\
+\
+gwas[gwas$snp_pos == 67715455 & gwas$snp_chr == 13, ]\
+\
+\
+# 1. 
+\f1 \'bd\'ab\'bb\'e6\'cd\'bc\'bd\'e1\'b9\'fb\'b8\'b3\'d6\'b5\'b8\'f8
+\f0  p\
+p <- gwas %>%\
+  gg_locusplot(\
+    lead_snp = "13_67715455_C_T",\
+    rsid =eSNP,\
+    chrom = snp_chr ,\
+    pos = snp_pos,\
+  \cf3   ref = ref,\
+    alt = alt,\cf0 \
+    p_value = pvalue,\
+    plot_genes = TRUE,\
+  plot_recombination = TRUE\
+  )\
+\
+# 2. 
+\f1 \'b6\'a8\'d2\'e5\'b1\'a3\'b4\'e6\'c2\'b7\'be\'b6\'ba\'cd\'ce\'c4\'bc\'fe\'c3\'fb
+\f0 \
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/13_67715485_locusplot.pdf"\
+\
+# 3. 
+\f1 \'ca\'b9\'d3\'c3
+\f0  ggsave 
+\f1 \'b1\'a3\'b4\'e6
+\f0 \
+# 
+\f1 \'c4\'e3\'bf\'c9\'d2\'d4\'b8\'f9\'be\'dd\'d0\'e8\'d2\'aa\'b8\'fc\'b8\'c4\'ba\'f3\'d7\'ba\'ce\'aa
+\f0  .png, .pdf, 
+\f1 \'bb\'f2
+\f0  .tiff\
+library(ggplot2)\
+ggsave(\
+  filename = output_path, \
+  plot = p, \
+  width = 10,   # 
+\f1 \'bf\'ed\'b6\'c8\'a3\'ac\'bd\'a8\'d2\'e9
+\f0  Locus Plot 
+\f1 \'c9\'e8\'d6\'c3\'bf\'ed\'d2\'bb\'b5\'e3
+\f0 \
+  height = 7,   # 
+\f1 \'b8\'df\'b6\'c8
+\f0 \
+  dpi = 300     # 
+\f1 \'b7\'d6\'b1\'e6\'c2\'ca\'a3\'a8\'c8\'e7\'b9\'fb\'ca\'c7
+\f0  PNG 
+\f1 \'b8\'f1\'ca\'bd\'b5\'c4\'bb\'b0\'a3\'a9
+\f0 \
+)\
+\
+cat("
+\f1 \'cd\'bc\'c6\'ac\'d2\'d1\'b1\'a3\'b4\'e6\'d6\'c1
+\f0 :", output_path, "\\n")\
+######################\
+7_137068835_G_A\
+\
+gwas[gwas$pos == 137068835 & gwas$chr == 7, ]\
+\
+###########################\
+
+\f1 \'bb\'ad\'d2\'bb\'b8\'f6
+\f0  edqtl 
+\f1 \'b5\'c4
+\f0 \
+\
+eqtl_full <- read.table(\
+   file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/
+\f1 \'c4\'e6\'b7\'bd\'b2\'ee\'bc\'d3\'c8\'a8
+\f0 /metal_results_hg38/hg19_all/all_merged_classified.allele_fixed_hg19.txt", \
+    as.is=T\
+)\
+# 
+\f1 \'bc\'d9\'c9\'e8\'c8\'ab\'ce\'c4\'bc\'fe
+\f0  V1=eGene, V2=eSNP, V11=p.value, V9=N\
+eqtl_full$eGene <- eqtl_full$V1\
+eqtl_full$eSNP <- eqtl_full$V2\
+eqtl_full$p.value <- eqtl_full$V11 \
+\
+\
+# ----------------------------------------------------------------------\
+# 3. 
+\f1 \'bd\'e2\'ce\'f6
+\f0  CHR/POS 
+\f1 \'d0\'c5\'cf\'a2
+\f0  (
+\f1 \'d6\'bb\'b6\'d4\'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'ba\'cd
+\f0 GWAS
+\f1 \'bd\'f8\'d0\'d0\'d2\'bb\'b4\'ce\'bd\'e2\'ce\'f6
+\f0 )\
+# ----------------------------------------------------------------------\
+\
+# 
+\f1 \'b4\'d3
+\f0  eQTL 
+\f1 \'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'bd\'e2\'ce\'f6
+\f0  edSite 
+\f1 \'b5\'c4
+\f0  CHR/POS
+\f1 \'a3\'ac\'d3\'c3\'d3\'da\'b4\'b0\'bf\'da\'d6\'d0\'d0\'c4
+\f0 \
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))\
+eqtl_full$site_chr <- as.integer(tmp_site[, 1])\
+eqtl_full$site_pos <- as.integer(tmp_site[, 2])\
+\
+# 
+\f1 \'b4\'d3
+\f0  eQTL 
+\f1 \'c8\'ab\'c1\'bf\'ca\'fd\'be\'dd\'bd\'e2\'ce\'f6
+\f0  eSNP 
+\f1 \'b5\'c4
+\f0  CHR/POS
+\f1 \'a3\'ac\'d3\'c3\'d3\'da\'ba\'f3\'d0\'f8\'bf\'c9\'c4\'dc\'b5\'c4\'c7\'f8\'d3\'f2\'b9\'fd\'c2\'cb\'a3\'a8\'bf\'c9\'d1\'a1\'a3\'a9
+\f0 \
+tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))\
+eqtl_full$snp_chr <- as.integer(tmp_snp[, 1])\
+eqtl_full$snp_pos <- as.integer(tmp_snp[, 2])\
+\
+\
+\
+p <- \
+gg_locusplot(\
+  df = eqtl_full,\
+  lead_snp = "13_67715455_C_T",\
+  rsid = eSNP,\
+  chrom = snp_chr,\
+  pos = snp_pos,\
+  ref = V3,\
+  alt = V4,\
+  p_value = p.value,\
+  plot_genes = TRUE,\
+  plot_recombination = TRUE\
+)\
+\
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/edqtl_rs13234894_locusplot3.pdf"\
+\
+# 3. 
+\f1 \'ca\'b9\'d3\'c3
+\f0  ggsave 
+\f1 \'b1\'a3\'b4\'e6
+\f0 \
+# 
+\f1 \'c4\'e3\'bf\'c9\'d2\'d4\'b8\'f9\'be\'dd\'d0\'e8\'d2\'aa\'b8\'fc\'b8\'c4\'ba\'f3\'d7\'ba\'ce\'aa
+\f0  .png, .pdf, 
+\f1 \'bb\'f2
+\f0  .tiff\
+library(ggplot2)\
+ggsave(\
+  filename = output_path, \
+  plot = p, \
+  width = 10,   # 
+\f1 \'bf\'ed\'b6\'c8\'a3\'ac\'bd\'a8\'d2\'e9
+\f0  Locus Plot 
+\f1 \'c9\'e8\'d6\'c3\'bf\'ed\'d2\'bb\'b5\'e3
+\f0 \
+  height = 7,   # 
+\f1 \'b8\'df\'b6\'c8
+\f0 \
+  dpi = 300     # 
+\f1 \'b7\'d6\'b1\'e6\'c2\'ca\'a3\'a8\'c8\'e7\'b9\'fb\'ca\'c7
+\f0  PNG 
+\f1 \'b8\'f1\'ca\'bd\'b5\'c4\'bb\'b0\'a3\'a9
+\f0 \
+)\
+\
+\
+\
+####################################\
+
+\f1 \'c9\'fa\'b3\'c9
+\f0  PPT 
+\f1 \'bf\'c9\'d2\'d4\'d5\'b9\'ca\'be\'b5\'c4\'b1\'ed\'b8\'f1
+\f0 \
+####################################\
+\
+
+\f1 \'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe
+\f0 coloc: 
+\f1 \'b5\'da\'d2\'bb\'c1\'d0\'ce\'aa
+\f0  edsite\
+\'a0/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt\
+\
+
+\f1 \'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0 1
+\f1 \'a3\'ba
+\f0 \
+DATA_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+
+\f1 \'b5\'da\'d2\'bb\'c1\'d0
+\f0 edSite_File\'a0 
+\f1 \'d7\'f6\'cb\'f7\'d2\'fd\'a3\'ac\'cc\'ed\'bc\'d3
+\f0  Final_Class 
+\f1 \'c1\'d0\'a3\'ac\'b5\'b9\'ca\'fd
+\f0  1 2 3
+\f1 \'c8\'fd\'c1\'d0\'a3\'a8\'bb\'f9\'d2\'f2\'a3\'ac
+\f0  
+\f1 \'bb\'f9\'d2\'f2\'d7\'e9\'d7\'a2\'ca\'cd\'a3\'ac
+\f0  alu 
+\f1 \'d4\'aa\'bc\'fe\'a3\'a9
+\f0 \
+\
+
+\f1 \'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0 2
+\f1 \'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/miRNA.txt\
+
+\f1 \'b5\'da\'cb\'c4\'c1\'d0
+\f0  Gene 
+\f1 \'d7\'f6\'cb\'f7\'d2\'fd
+\f0 ,
+\f1 \'cc\'ed\'bc\'d3\'b5\'da\'d2\'bb\'c1\'d0
+\f0  Experiment \'a0\
+
+\f1 \'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0 3
+\f1 \'a3\'ba
+\f0 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/suny_1182_sigpair.txt\
+
+\f1 \'b5\'da
+\f0 2
+\f1 \'c1\'d0
+\f0  Var2 
+\f1 \'d7\'f6\'cb\'f7\'d2\'fd\'a3\'ac\'cc\'ed\'bc\'d3\'b5\'da\'d2\'bb\'c1\'d0
+\f0  Var1\
+\
+\
+
+\f1 \'ca\'e4\'b3\'f6\'c2\'b7\'be\'b6
+\f0 : \'a0\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/     \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1 \cf4 \'ce\'d2\'d0\'e8\'d2\'aa\'cf\'c8\'bd\'ab\'ce\'c4\'bc\'fe\'d2\'bb\'ce\'c4\'bc\'fe\'b6\'fe\'b0\'b4
+\f0  edsite 
+\f1 \'cb\'f7\'d2\'fd\'a3\'ac\'cc\'ed\'bc\'d3\'d6\'b8\'b6\'a8\'c1\'d0\'a3\'ac\'c8\'bb\'ba\'f3\'d4\'d9\'d3\'c3\'c9\'fa\'b3\'c9\'ce\'c4\'bc\'fe\'d0\'c2\'cc\'ed\'bc\'d3\'b5\'c4\'bb\'f9\'d2\'f2\'c1\'d0\'cb\'f7\'d2\'fd\'ce\'c4\'bc\'fe\'c8\'fd\'ce\'c4\'bc\'fe\'cb\'c4\'a1\'a3\'cb\'f7\'d2\'fd\'ca\'b1\'c8\'e7\'b9\'fb\'c3\'bb\'cb\'f7\'d2\'fd\'c9\'cf\'d4\'f2
+\f0  
+\f1 \'b8\'c4\'c1\'d0\'cc\'ee
+\f0 NA ,
+\f1 \'c8\'e7\'b9\'fb\'c4\'b3\'b8\'f6\'cb\'f7\'d2\'fd\'d4\'da\'cb\'f7\'d2\'fd\'ce\'c4\'bc\'fe\'b4\'e6\'d4\'da\'b6\'e0\'d0\'d0\'d4\'f2\'d6\'bb\'c8\'a1\'b5\'da\'d2\'bb\'b8\'f6\'c6\'a5\'c5\'e4\'b5\'c4\'cb\'f7\'d2\'fd\'bd\'e1\'b9\'fb
+\f0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+# 1. 
+\f1 \'b6\'a8\'d2\'e5\'c2\'b7\'be\'b6
+\f0 \
+COLOC_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt"\
+ANNO1="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+ANNO2="/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/miRNA.txt"\
+ANNO3="/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/suny_1182_sigpair.txt"\
+\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result"\
+OUT_FILE="$\{OUT_DIR\}/meta_edsite_coloc_annotated.txt"\
+\
+mkdir -p "$OUT_DIR"\
+\
+# 2. 
+\f1 \'d6\'b4\'d0\'d0
+\f0  awk 
+\f1 \'b9\'d8\'c1\'aa\'c2\'df\'bc\'ad
+\f0 \
+awk '\
+BEGIN \{ FS="\\t"; OFS="\\t" \}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  1 (ANNO1)\
+ARGIND == 1 \{\
+    if (FNR > 1 && $1 != "") \{\
+        if (!($1 in a1_f)) \{\
+            a1_f[$1] = $20\
+            a1_g[$1] = $(NF-2)\
+            a1_n[$1] = $(NF-1)\
+            a1_a[$1] = $NF\
+        \}\
+    \}\
+    next\
+\}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  2 (ANNO2)\
+ARGIND == 2 \{\
+    if ($4 != "" && !($4 in a2_e)) \{\
+        a2_e[$4] = $1\
+    \}\
+    next\
+\}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'d7\'a2\'ca\'cd\'ce\'c4\'bc\'fe
+\f0  3 (ANNO3)\
+ARGIND == 3 \{\
+    if (FNR > 1 && $2 != "" && !($2 in a3_v)) \{\
+        a3_v[$2] = $1\
+    \}\
+    next\
+\}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'ca\'e4\'c8\'eb\'ce\'c4\'bc\'fe
+\f0  (COLOC_FILE)\
+ARGIND == 4 \{\
+    if (FNR == 1) \{\
+        print $0, "Final_Class", "gene", "site_anno", "ALU", "Experiment", "Var1"\
+    \} else \{\
+        cur_site = $1\
+        \
+        # 
+\f1 \'b3\'f5\'ca\'bc\'bb\'af\'b1\'e4\'c1\'bf\'a3\'ac\'b1\'dc\'c3\'e2\'ca\'b9\'d3\'c3
+\f0  exp 
+\f1 \'b5\'c8\'b1\'a3\'c1\'f4\'d7\'d6
+\f0 \
+        res_f = "NA"; res_g = "NA"; res_n = "NA"; res_a = "NA"; \
+        res_e = "NA"; res_v = "NA";\
+        \
+        # 
+\f1 \'b5\'da\'d2\'bb\'b2\'e3\'a3\'ba\'bb\'f9\'d3\'da
+\f0  site\
+        if (cur_site in a1_f) \{\
+            res_f = a1_f[cur_site]\
+            res_g = a1_g[cur_site]\
+            res_n = a1_n[cur_site]\
+            res_a = a1_a[cur_site]\
+        \}\
+        \
+        # 
+\f1 \'b5\'da\'b6\'fe\'a1\'a2\'c8\'fd\'b2\'e3\'a3\'ba\'bb\'f9\'d3\'da\'d5\'d2\'b5\'bd\'b5\'c4
+\f0  gene\
+        if (res_g != "NA") \{\
+            if (res_g in a2_e) \{\
+                res_e = a2_e[res_g]\
+            \}\
+            if (res_g in a3_v) \{\
+                res_v = a3_v[res_g]\
+            \}\
+        \}\
+        \
+        print $0, res_f, res_g, res_n, res_a, res_e, res_v\
+    \}\
+\}' "$ANNO1" "$ANNO2" "$ANNO3" "$COLOC_FILE" > "$OUT_FILE"\
+\
+echo "
+\f1 \'b4\'a6\'c0\'ed\'cd\'ea\'b3\'c9\'a3\'a1\'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'d6\'c1
+\f0 : $OUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/SCZ_EAS/meta_edsite_coloc_sig_075.summary.txt\
+###################
+\f1 \'cb\'f7\'d2\'fd\'cc\'e1\'c8\'a1\'d0\'e8\'d2\'aa\'b5\'c4\'d0\'d0\'cc\'ed\'bc\'d3\'d0\'e8\'d2\'aa\'b5\'c4\'c1\'d0
+\f0 \
+\
+# 1. 
+\f1 \'b6\'a8\'d2\'e5\'c2\'b7\'be\'b6
+\f0 \
+MDD_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt"\
+SCZ_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/SCZ_EAS/meta_edsite_coloc_sig_075.summary.txt"\
+DATA_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+OUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 /coloc_sig_reclassified_matched.txt"\
+\
+mkdir -p "$(dirname "$OUT_FILE")"\
+\
+# 2. 
+\f1 \'d6\'b4\'d0\'d0
+\f0  awk 
+\f1 \'b9\'d8\'c1\'aa
+\f0 \
+awk '\
+BEGIN \{ FS="\\t"; OFS="\\t" \}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'b5\'da\'d2\'bb\'b8\'f6\'ce\'c4\'bc\'fe
+\f0 : MDD\
+ARGIND == 1 \{\
+    if (FNR > 1 && $1 != "") \{\
+        disease[$1] = "MDD"\
+        pph4[$1] = $NF  # $NF 
+\f1 \'b4\'fa\'b1\'ed\'d7\'ee\'ba\'f3\'d2\'bb\'c1\'d0
+\f0  (PPH4)\
+    \}\
+    next\
+\}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'b5\'da\'b6\'fe\'b8\'f6\'ce\'c4\'bc\'fe
+\f0 : SCZ\
+ARGIND == 2 \{\
+    if (FNR > 1 && $1 != "") \{\
+        # 
+\f1 \'c8\'e7\'b9\'fb\'c4\'b3\'b8\'f6
+\f0  Site 
+\f1 \'d4\'da\'c1\'bd\'b8\'f6\'bc\'b2\'b2\'a1\'c0\'ef\'b6\'bc\'d3\'d0\'a3\'ac\'d5\'e2\'c0\'ef\'bb\'e1\'d2\'d4
+\f0  SCZ 
+\f1 \'ce\'aa\'d7\'bc\'bb\'f2\'bf\'c9\'d2\'d4\'d0\'de\'b8\'c4\'c2\'df\'bc\'ad
+\f0 \
+        disease[$1] = "SCZ"\
+        pph4[$1] = $NF\
+    \}\
+    next\
+\}\
+\
+# 
+\f1 \'b4\'a6\'c0\'ed\'b5\'da\'c8\'fd\'b8\'f6\'ce\'c4\'bc\'fe
+\f0 : 
+\f1 \'b4\'f3\'b1\'ed
+\f0  (metaqtl_significant)\
+ARGIND == 3 \{\
+    if (FNR == 1) \{\
+        # 
+\f1 \'d4\'da\'b1\'ed\'cd\'b7\'c4\'a9\'ce\'b2\'cc\'ed\'bc\'d3\'d0\'c2\'c1\'d0\'c3\'fb
+\f0 \
+        print $0, "disease", "PPH4"\
+    \} else \{\
+        site = $1\
+        if (site in disease) \{\
+            # 
+\f1 \'ca\'e4\'b3\'f6\'d4\'ad\'ca\'bc\'d0\'d0\'a3\'ac\'b2\'a2\'d7\'b7\'bc\'d3\'b8\'c3
+\f0  Site 
+\f1 \'b6\'d4\'d3\'a6\'b5\'c4\'bc\'b2\'b2\'a1\'c3\'fb\'ba\'cd
+\f0  PPH4\
+            print $0, disease[site], pph4[site]\
+        \}\
+    \}\
+\}' "$MDD_FILE" "$SCZ_FILE" "$DATA_FILE" > "$OUT_FILE"\
+\
+echo "
+\f1 \'c6\'a5\'c5\'e4\'d3\'eb\'d7\'d6\'b6\'ce\'cc\'ed\'bc\'d3\'cd\'ea\'b3\'c9\'a3\'a1\'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'d6\'c1
+\f0 : $OUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+###############
+\f1 \'cc\'e1\'c8\'a1\'d0\'e8\'d2\'aa\'b5\'c4\'c1\'d0\'d7\'ee\'d6\'d5\'d5\'b9\'ca\'be\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2"\
+mkdir -p "$OUT_DIR"\
+\
+INPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2/coloc_sig_reclassified_matched.txt"\
+OUTPUT_FILE="$\{OUT_DIR\}/site_statistics_refined.txt"\
+\
+# 2. \'d6\'b4\'d0\'d0\'cd\'b3\'bc\'c6\'c2\'df\'bc\'ad\
+awk '\
+BEGIN \{\
+    FS="\\t"; OFS="\\t";\
+\}\
+NR == 1 \{\
+    # \'b4\'f2\'d3\'a1\'cd\'b3\'bc\'c6\'b1\'a8\'b1\'ed\'b5\'c4\'b1\'ed\'cd\'b7\
+    print "edSite_File", "Gene", "Site_Anno", "Disease", "PPH4", "Total_Significant_Markers", "Final_Class_Distribution" > "'"$OUTPUT_FILE"'"\
+    next\
+\}\
+\{\
+    # --- \'d0\'c2\'d4\'f6\'cc\'f5\'bc\'fe\'b9\'fd\'c2\'cb ---\
+    # \'d6\'bb\'b4\'a6\'c0\'ed\'b5\'da 17 \'c1\'d0 q_value < 0.05 \'b5\'c4\'d0\'d0\
+    if ($17 >= 0.05) next;\
+\
+    # --- \'b6\'af\'cc\'ac\'b6\'a8\'ce\'bb\'c1\'d0 ---\
+    site        = $1;    # \'b5\'da1\'c1\'d0\
+    marker      = $2;    # \'b5\'da2\'c1\'d0\
+    final_class = $20;   # \'b5\'da20\'c1\'d0\
+    \
+    pph4        = $NF;\
+    disease     = $(NF-1);\
+    site_anno   = $(NF-3);\
+    gene        = $(NF-4);\
+\
+    # --- \'cd\'b3\'bc\'c6\'c2\'df\'bc\'ad (\'bd\'f6\'d5\'eb\'b6\'d4\'c2\'fa\'d7\'e3 q < 0.05 \'b5\'c4\'d0\'d0) ---\
+    if (!(site in gene_map))    gene_map[site] = gene;\
+    if (!(site in anno_map))    anno_map[site] = site_anno;\
+    if (!(site in dis_map))     dis_map[site]  = disease;\
+    if (!(site in pph4_map))    pph4_map[site] = pph4;\
+\
+    # \'cd\'b3\'bc\'c6\'ce\'a8\'d2\'bb\'cf\'d4\'d6\'f8 Marker \'ca\'fd\'c1\'bf\
+    marker_key = site SUBSEP marker;\
+    if (!(marker_key in seen_marker)) \{\
+        site_marker_count[site]++;\
+        seen_marker[marker_key] = 1;\
+    \}\
+\
+    # \'cd\'b3\'bc\'c6\'cf\'d4\'d6\'f8\'d0\'d0\'b5\'c4 Final_Class \'b7\'d6\'c0\'e0\'b7\'d6\'b2\'bc\
+    class_count[site][final_class]++;\
+\}\
+END \{\
+    for (s in site_marker_count) \{\
+        class_str = "";\
+        for (c in class_count[s]) \{\
+            class_str = class_str c "(" class_count[s][c] "); ";\
+        \}\
+        sub(/; $/, "", class_str);\
+        \
+        print s, gene_map[s], anno_map[s], dis_map[s], pph4_map[s], site_marker_count[s], class_str >> "'"$OUTPUT_FILE"'"\
+    \}\
+\}' "$INPUT_FILE"\
+\
+echo "\'cd\'b3\'bc\'c6\'cd\'ea\'b3\'c9\'a3\'a1\'bd\'f6\'b0\'fc\'ba\'ac q_value < 0.05 \'b5\'c4\'cf\'d4\'d6\'f8\'ce\'bb\'b5\'e3\'cd\'b3\'bc\'c6\'a3\'ac\'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'d6\'c1: $OUTPUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs72 \cf3 ###############\'d2\'d4\'c9\'cf\'d6\'bb\'d5\'b9\'ca\'be\'cf\'d4\'d6\'f8snp  
+\fs36 \cf0 \
+
+\fs72 \cf3 ###############\'d2\'d4\'cf\'c2\'d5\'b9\'ca\'be\'b5\'c4\'ca\'c7\'cb\'f9\'d3\'d0\'b5\'c4snp  \'c3\'bb\'d3\'d0\'b9\'dc\'ca\'c7\'b7\'f1\'cf\'d4\'d6\'f8
+\fs36 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0 \cf0 chr11   61335229        61335230        chr11_61567758\
+\
+# 1. 
+\f1 \'b6\'a8\'d2\'e5\'c2\'b7\'be\'b6
+\f0 \
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 "\
+mkdir -p "$OUT_DIR"\
+\
+INPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 /coloc_sig_reclassified_matched.txt"\
+OUTPUT_FILE="$\{OUT_DIR\}/site_statistics_refined.txt"\
+\
+# 2. 
+\f1 \'d6\'b4\'d0\'d0\'cd\'b3\'bc\'c6\'c2\'df\'bc\'ad
+\f0 \
+awk '\
+BEGIN \{\
+    FS="\\t"; OFS="\\t";\
+\}\
+NR == 1 \{\
+    # 
+\f1 \'b4\'f2\'d3\'a1\'cd\'b3\'bc\'c6\'b1\'a8\'b1\'ed\'b5\'c4\'b1\'ed\'cd\'b7
+\f0 \
+    # 
+\f1 \'b0\'fc\'ba\'ac\'c4\'e3\'d0\'c2\'d2\'aa\'c7\'f3\'b5\'c4
+\f0  Disease 
+\f1 \'ba\'cd
+\f0  PPH4\
+    print "edSite_File", "Gene", "Site_Anno", "Disease", "PPH4", "Total_Markers", "Final_Class_Distribution" > "'"$OUTPUT_FILE"'"\
+    next\
+\}\
+\{\
+    # --- 
+\f1 \'b6\'af\'cc\'ac\'b6\'a8\'ce\'bb\'c1\'d0
+\f0  (
+\f1 \'bb\'f9\'d3\'da\'d7\'b7\'bc\'d3\'ba\'f3\'b5\'c4
+\f0  26 
+\f1 \'c1\'d0\'bd\'e1\'b9\'b9
+\f0 ) ---\
+    # 1. 
+\f1 \'b3\'a3\'b9\'e6\'c1\'d0
+\f0 \
+    site        = $1;    # 
+\f1 \'b5\'da
+\f0 1
+\f1 \'c1\'d0
+\f0 \
+    marker      = $2;    # 
+\f1 \'b5\'da
+\f0 2
+\f1 \'c1\'d0
+\f0 \
+    final_class = $20;   # 
+\f1 \'b5\'da
+\f0 20
+\f1 \'c1\'d0
+\f0 \
+    \
+    # 2. 
+\f1 \'ce\'b2\'b2\'bf\'c1\'d0
+\f0  (
+\f1 \'c0\'fb\'d3\'c3
+\f0  NF 
+\f1 \'d7\'d4\'b6\'af\'ca\'ca\'d3\'a6\'d0\'c2\'d4\'f6\'c1\'d0\'ba\'f3\'b5\'c4\'ce\'bb\'d6\'c3
+\f0 )\
+    # 
+\f1 \'d7\'ee\'ba\'f3\'d2\'bb\'c1\'d0
+\f0  ($NF) 
+\f1 \'ca\'c7
+\f0  PPH4\
+    # 
+\f1 \'b5\'b9\'ca\'fd\'b5\'da\'b6\'fe\'c1\'d0
+\f0  ($(NF-1)) 
+\f1 \'ca\'c7
+\f0  disease\
+    # 
+\f1 \'b5\'b9\'ca\'fd\'b5\'da\'c8\'fd\'c1\'d0
+\f0  ($(NF-2)) 
+\f1 \'ca\'c7
+\f0  ALU (
+\f1 \'c4\'e3\'d6\'ae\'c7\'b0\'b6\'a8\'d2\'e5\'b5\'c4
+\f0 )\
+    # 
+\f1 \'b5\'b9\'ca\'fd\'b5\'da\'cb\'c4\'c1\'d0
+\f0  ($(NF-3)) 
+\f1 \'ca\'c7
+\f0  site_anno\
+    # 
+\f1 \'b5\'b9\'ca\'fd\'b5\'da\'ce\'e5\'c1\'d0
+\f0  ($(NF-4)) 
+\f1 \'ca\'c7
+\f0  gene\
+    \
+    pph4        = $NF;\
+    disease     = $(NF-1);\
+    site_anno   = $(NF-3);\
+    gene        = $(NF-4);\
+\
+    # --- 
+\f1 \'cd\'b3\'bc\'c6\'c2\'df\'bc\'ad
+\f0  ---\
+    # 
+\f1 \'bc\'c7\'c2\'bc
+\f0  site 
+\f1 \'b6\'d4\'d3\'a6\'b5\'c4\'be\'b2\'cc\'ac\'d0\'c5\'cf\'a2
+\f0  (Disease 
+\f1 \'ba\'cd
+\f0  PPH4 
+\f1 \'b6\'d4\'c3\'bf\'b8\'f6
+\f0  site 
+\f1 \'d3\'a6\'b8\'c3\'ca\'c7\'ce\'a8\'d2\'bb\'b5\'c4
+\f0 )\
+    if (!(site in gene_map))    gene_map[site] = gene;\
+    if (!(site in anno_map))    anno_map[site] = site_anno;\
+    if (!(site in dis_map))     dis_map[site]  = disease;\
+    if (!(site in pph4_map))    pph4_map[site] = pph4;\
+\
+    # 
+\f1 \'cd\'b3\'bc\'c6\'ce\'a8\'d2\'bb
+\f0  Marker 
+\f1 \'ca\'fd\'c1\'bf
+\f0 \
+    marker_key = site SUBSEP marker;\
+    if (!(marker_key in seen_marker)) \{\
+        site_marker_count[site]++;\
+        seen_marker[marker_key] = 1;\
+    \}\
+\
+    # 
+\f1 \'cd\'b3\'bc\'c6
+\f0  Final_Class 
+\f1 \'b7\'d6\'c0\'e0\'b7\'d6\'b2\'bc
+\f0 \
+    class_count[site][final_class]++;\
+\}\
+END \{\
+    for (s in site_marker_count) \{\
+        # 
+\f1 \'c6\'b4\'bd\'d3\'b7\'d6\'c0\'e0\'bc\'c6\'ca\'fd\'d7\'d6\'b7\'fb\'b4\'ae
+\f0 \
+        class_str = "";\
+        for (c in class_count[s]) \{\
+            class_str = class_str c "(" class_count[s][c] "); ";\
+        \}\
+        sub(/; $/, "", class_str);\
+        \
+        # 
+\f1 \'b0\'b4\'d5\'d5\'d0\'c2\'b1\'ed\'cd\'b7\'cb\'b3\'d0\'f2\'ca\'e4\'b3\'f6
+\f0 \
+        print s, gene_map[s], anno_map[s], dis_map[s], pph4_map[s], site_marker_count[s], class_str >> "'"$OUTPUT_FILE"'"\
+    \}\
+\}' "$INPUT_FILE"\
+\
+echo "
+\f1 \'cd\'b3\'bc\'c6\'cd\'ea\'b3\'c9\'a3\'a1\'d7\'ee\'d6\'d5\'bd\'e1\'b9\'fb\'b0\'fc\'ba\'ac
+\f0  Disease 
+\f1 \'ba\'cd
+\f0  PPH4
+\f1 \'a3\'ac\'b1\'a3\'b4\'e6\'d6\'c1
+\f0 : $OUTPUT_FILE" +\
+\
+#########################################\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\fs72 \cf2 \'bf\'b4
+\f0  coloc 
+\f1 \'b5\'c4\'bb\'f9\'d2\'f2\'ca\'c7\'b2\'bb\'ca\'c7
+\f0 egene 
+\f1 \'a3\'ac\'b7\'c5\'bf\'ed
+\f0  
+\f1 \'cf\'de\'d6\'c6\'d2\'aa\'c7\'f3\'a1\'a3
+\f0 1
+\f1 \'d4\'c2
+\f0 9
+\f1 \'c8\'d5
+\f0\fs36 \cf0 \
+#########################################\
+\
+# 
+\f1 \'c9\'e8\'d6\'c3\'b9\'a4\'d7\'f7\'c4\'bf\'c2\'bc
+\f0 \
+library(clusterProfiler)   \
+library(org.Hs.eg.db)\
+library(data.table)\
+\
+# 
+\f1 \'c9\'e8\'d6\'c3\'b9\'a4\'d7\'f7\'c4\'bf\'c2\'bc
+\f0 \
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/")\
+\
+# 1. 
+\f1 \'b8\'df\'d0\'a7\'b6\'c1\'c8\'a1\'d4\'ad\'ca\'bc\'b4\'f3\'ce\'c4\'bc\'fe
+\f0 \
+input_file <- "eqtl.nominal.for_coloc.hg19.txt"\
+message("
+\f1 \'d5\'fd\'d4\'da\'b6\'c1\'c8\'a1\'d4\'ad\'ca\'bc\'ca\'fd\'be\'dd
+\f0 ...")\
+# 
+\f1 \'ca\'b9\'d3\'c3
+\f0  fread 
+\f1 \'b6\'c1\'c8\'a1\'a3\'ac\'cb\'d9\'b6\'c8\'d4\'b6\'bf\'ec\'d3\'da
+\f0  read.table\
+egene_data <- fread(input_file, header = FALSE) \
+\
+# 
+\f1 \'bb\'f1\'c8\'a1\'ce\'a8\'d2\'bb\'b5\'c4
+\f0  ENSG ID 
+\f1 \'bd\'f8\'d0\'d0\'d7\'aa\'bb\'bb\'a3\'a8\'ce\'aa\'c1\'cb\'bd\'da\'ca\'a1\'c4\'da\'b4\'e6\'ba\'cd\'ca\'b1\'bc\'e4\'a3\'ac\'d6\'bb\'d7\'aa\'bb\'bb
+\f0  Unique 
+\f1 \'b5\'c4
+\f0  ID
+\f1 \'a3\'a9
+\f0 \
+ensg_ids <- unique(egene_data$V1)\
+\
+# 
+\f1 \'c8\'a5\'b3\'fd\'b0\'e6\'b1\'be\'ba\'c5\'a3\'a8\'c8\'e7
+\f0  ENSG000001.10 -> ENSG000001
+\f1 \'a3\'a9
+\f0 \
+ensg_ids_clean <- gsub("\\\\..*", "", ensg_ids)\
+\
+# 2. 
+\f1 \'bd\'f8\'d0\'d0
+\f0  ID 
+\f1 \'d7\'aa\'bb\'bb
+\f0 \
+message("
+\f1 \'d5\'fd\'d4\'da\'bd\'f8\'d0\'d0
+\f0  ID 
+\f1 \'d7\'aa\'bb\'bb
+\f0 ...")\
+gene_conversion <- bitr(ensg_ids_clean, \
+                        fromType = "ENSEMBL", \
+                        toType   = "SYMBOL", \
+                        OrgDb    = org.Hs.eg.db,\
+                        drop     = FALSE)\
+\
+# 
+\f1 \'bd\'a8\'c1\'a2\'d2\'bb\'b8\'f6\'d7\'aa\'bb\'bb\'d7\'d6\'b5\'e4\'a3\'ba\'d4\'ad\'ca\'bc
+\f0  ID -> 
+\f1 \'c7\'e5\'c0\'ed\'ba\'f3\'b5\'c4
+\f0  ID -> Symbol\
+# 
+\f1 \'d5\'e2\'c0\'ef\'b4\'a6\'c0\'ed\'b0\'e6\'b1\'be\'ba\'c5\'b5\'c4\'b6\'d4\'d3\'a6\'b9\'d8\'cf\'b5\'a3\'ac\'c8\'b7\'b1\'a3\'c4\'dc
+\f0  merge 
+\f1 \'bb\'d8\'c8\'a5
+\f0 \
+mapping_df <- data.frame(V1 = ensg_ids, clean_id = ensg_ids_clean, stringsAsFactors = FALSE)\
+mapping_df <- merge(mapping_df, gene_conversion, by.x = "clean_id", by.y = "ENSEMBL", all.x = TRUE)\
+\
+# 3. 
+\f1 \'bd\'a8\'c1\'a2\'d3\'b3\'c9\'e4\'b9\'d8\'cf\'b5\'b2\'a2\'c7\'bf\'d6\'c6\'c8\'a5\'d6\'d8\'a3\'a8\'bd\'e2\'be\'f6\'b6\'e0\'b6\'d4\'d2\'bb\'ce\'ca\'cc\'e2\'a3\'a9
+\f0 \
+message("
+\f1 \'d5\'fd\'d4\'da\'ba\'cf\'b2\'a2\'bb\'f9\'d2\'f2\'c3\'fb\'d6\'c1\'d4\'ad\'ca\'bc\'b1\'ed
+\f0 ...")\
+\
+# 
+\f1 \'ce\'d2\'c3\'c7\'d6\'bb\'d0\'e8\'d2\'aa
+\f0  V1 (
+\f1 \'d4\'ad\'ca\'bc
+\f0  ID) 
+\f1 \'ba\'cd
+\f0  SYMBOL 
+\f1 \'d5\'e2\'c1\'bd\'c1\'d0
+\f0 \
+mapping_dict <- as.data.table(mapping_df[, c("V1", "SYMBOL")])\
+\
+# 
+\f1 \'a1\'be\'ba\'cb\'d0\'c4\'d0\'de\'b8\'b4\'b2\'bd\'a1\'bf\'a3\'ba\'c8\'b7\'b1\'a3\'c3\'bf\'b8\'f6
+\f0  V1 
+\f1 \'d6\'bb\'d3\'d0\'d2\'bb\'b8\'f6\'b6\'d4\'d3\'a6\'b5\'c4
+\f0  SYMBOL\
+# 
+\f1 \'c8\'e7\'b9\'fb\'d2\'bb\'b8\'f6
+\f0  ENSG 
+\f1 \'b6\'d4\'d3\'a6\'b6\'e0\'b8\'f6
+\f0  SYMBOL
+\f1 \'a3\'ac\'d6\'bb\'c8\'a1\'b5\'da\'d2\'bb\'b8\'f6\'a3\'ac\'b1\'dc\'c3\'e2\'d0\'d0\'ca\'fd\'c5\'f2\'d5\'cd
+\f0 \
+mapping_dict_unique <- mapping_dict[, .(SYMBOL = SYMBOL[1]), by = V1]\
+\
+# 
+\f1 \'c9\'e8\'d6\'c3
+\f0  Key 
+\f1 \'d2\'d4\'bc\'d3\'cb\'d9\'ba\'cf\'b2\'a2
+\f0 \
+setkey(mapping_dict_unique, V1)\
+setkey(egene_data, V1)\
+\
+# 
+\f1 \'ca\'b9\'d3\'c3\'d7\'f3\'c1\'ac\'bd\'d3\'ba\'cf\'b2\'a2
+\f0 \
+# 
+\f1 \'cf\'d6\'d4\'da\'b2\'bb\'bb\'e1\'d4\'d9\'b1\'a8\'b4\'ed\'a3\'ac\'d2\'f2\'ce\'aa
+\f0  mapping_dict_unique 
+\f1 \'b6\'d4\'d3\'da
+\f0  egene_data 
+\f1 \'ca\'c7\'d2\'bb\'b6\'d4\'d2\'bb\'b5\'c4\'b9\'d8\'cf\'b5
+\f0 \
+egene_data_with_name <- mapping_dict_unique[egene_data]\
+\
+# 4. 
+\f1 \'b1\'a3\'b4\'e6\'bd\'e1\'b9\'fb
+\f0 \
+output_file <- "eqtl.nominal.for_coloc_genename_hg19.txt"\
+message("
+\f1 \'d5\'fd\'d4\'da\'b1\'a3\'b4\'e6\'bd\'e1\'b9\'fb
+\f0 ...")\
+# 
+\f1 \'ca\'b9\'d3\'c3
+\f0  fwrite 
+\f1 \'bf\'ec\'cb\'d9\'b1\'a3\'b4\'e6\'a3\'ac\'b2\'bb\'bc\'d3\'d2\'fd\'ba\'c5\'a3\'ac\'d6\'c6\'b1\'ed\'b7\'fb\'b7\'d6\'b8\'f4
+\f0 \
+fwrite(egene_data_with_name, output_file, sep = "\\t", quote = FALSE, col.names = FALSE)\
+\
+cat("
+\f1 \'b9\'a7\'cf\'b2\'a3\'a1\'d7\'aa\'bb\'bb\'b2\'a2\'cc\'ed\'bc\'d3\'c1\'d0\'d2\'d1\'cd\'ea\'b3\'c9\'a3\'a1
+\f0 \\n")\
+cat("
+\f1 \'d4\'ad\'ca\'bc\'d0\'d0\'ca\'fd
+\f0 :", nrow(egene_data), "\\n")\
+cat("
+\f1 \'b1\'a3\'b4\'e6\'ce\'bb\'d6\'c3
+\f0 :", getwd(), "/", output_file, "\\n")\
+\
+################
+\f1 \'d5\'e2\'b8\'f6\'b7\'bd\'b7\'a8\'b2\'bb\'cc\'ab\'ba\'c3\'a3\'ac\'d3\'d0
+\f0 17% 
+\f1 \'b5\'c4\'bb\'f9\'d2\'f2\'c3\'bb\'c6\'a5\'c5\'e4\'c9\'cf
+\f0 \
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/hg38/v40/\
+\
+sed '/^#/d' gencode.v40.annotation.gtf | \\\
+awk '$3=="gene"' | \\\
+awk '\{\
+    # 
+\f1 \'ca\'b9\'d3\'c3\'d5\'fd\'d4\'f2\'c6\'a5\'c5\'e4\'bb\'f1\'c8\'a1
+\f0  gene_id 
+\f1 \'b5\'c4\'d6\'b5
+\f0 \
+    match($0, /gene_id "([^"]+)"/, id);\
+    # 
+\f1 \'ca\'b9\'d3\'c3\'d5\'fd\'d4\'f2\'c6\'a5\'c5\'e4\'bb\'f1\'c8\'a1
+\f0  gene_name 
+\f1 \'b5\'c4\'d6\'b5
+\f0 \
+    match($0, /gene_name "([^"]+)"/, name);\
+    \
+    # 
+\f1 \'cc\'e1\'c8\'a1
+\f0  ID 
+\f1 \'b2\'a2\'c8\'a5\'b5\'f4\'b0\'e6\'b1\'be\'ba\'c5
+\f0 \
+    split(id[1], a, ".");\
+    \
+    # 
+\f1 \'c8\'e7\'b9\'fb\'c6\'a5\'c5\'e4\'b5\'bd\'c1\'cb
+\f0  Name 
+\f1 \'c7\'d2
+\f0  ID 
+\f1 \'b2\'bb\'ce\'aa\'bf\'d5\'a3\'ac\'d4\'f2\'b4\'f2\'d3\'a1
+\f0 \
+    if (a[1] != "" && name[1] != "") \{\
+        print a[1], name[1]\
+    \}\
+\}' | sort -u > gene_name_mapping.txt\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1 \cf0 \'cb\'f7\'d2\'fd\'ce\'c4\'bc\'fe\cf2 \'a3\'ba
+\f0   /gpfs/hpc/home/chenchao/mayinuo/hg38/v40/gene_name_mapping.txt\cf0 \
+###
+\f1 \'d7\'aa\'bb\'bb
+\f0 \
+#
+\f1 \'d0\'b4\'b8\'f6\'bd\'c5\'b1\'be\'a3\'ba
+\f0 \
+\
+cat << 'EOF' > add_genename.sh\
+#!/bin/bash\
+\
+# 
+\f1 \'b6\'a8\'d2\'e5\'c2\'b7\'be\'b6
+\f0 \
+MAPPING="/gpfs/hpc/home/chenchao/mayinuo/hg38/v40/gene_name_mapping.txt"\
+INPUT="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt"\
+OUTPUT="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt"\
+\
+echo "
+\f1 \'bf\'aa\'ca\'bc\'b4\'a6\'c0\'ed\'a3\'ac\'d5\'e2\'bf\'c9\'c4\'dc\'d0\'e8\'d2\'aa\'bc\'b8\'b7\'d6\'d6\'d3
+\f0 ..."\
+\
+awk 'NR==FNR \{\
+    a[$1] = $2; \
+    next\
+\} \
+\{\
+    full_id = $1;\
+    # 
+\f1 \'c8\'a5\'b5\'f4\'b0\'e6\'b1\'be\'ba\'c5
+\f0 \
+    dot_index = index(full_id, ".");\
+    if (dot_index > 0) \{\
+        clean_id = substr(full_id, 1, dot_index - 1);\
+    \} else \{\
+        clean_id = full_id;\
+    \}\
+    \
+    # 
+\f1 \'b2\'e9\'d5\'d2
+\f0  symbol\
+    symbol = (clean_id in a) ? a[clean_id] : "NA";\
+    \
+    # 
+\f1 \'b4\'f2\'d3\'a1\'a3\'ba\'d4\'ad
+\f0  ID, Symbol, 
+\f1 \'d2\'d4\'bc\'b0\'ba\'f3\'d0\'f8\'cb\'f9\'d3\'d0\'c1\'d0
+\f0 \
+    printf "%s\\t%s", $1, symbol;\
+    for(i=2; i<=NF; i++) \{\
+        printf "\\t%s", $i;\
+    \}\
+    printf "\\n";\
+\}' "$MAPPING" "$INPUT" > "$OUTPUT"\
+\
+echo "
+\f1 \'b4\'a6\'c0\'ed\'cd\'ea\'b3\'c9\'a3\'a1\'bd\'e1\'b9\'fb\'b1\'a3\'b4\'e6\'d6\'c1
+\f0 : $OUTPUT"\
+EOF\
+\
+\
+chmod +x add_genename.sh\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/add_genename.sh\
+\
+\
+\
+#
+\f1 \'bd\'e1\'b9\'fb\'ce\'c4\'bc\'fe\'a3\'ba
+\f0 \cf2 /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt\cf0 \
+##
+\f1 \'bf\'aa\'ca\'bc\'d5\'d2\'ca\'c7\'b7\'f1\'d3\'d0
+\f0  coloc\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 /coloc_sig_reclassified_matched.txt\
+# 
+\f1 \'b5\'da\'d2\'bb\'c1\'d0
+\f0  edsite ,
+\f1 \'b5\'da\'b6\'fe\'c1\'d0
+\f0  edsnp 
+\f1 \'a1\'a2\'b5\'da\'c8\'fd\'c1\'d0
+\f0  alle1 
+\f1 \'a1\'a2\'b5\'da\'cb\'c4\'c1\'d0
+\f0  alle2
+\f1 \'d2\'d4
+\f0  _
+\f1 \'c1\'b4\'bd\'d3\'ba\'f3\'a3\'ac\'d3\'eb
+\f0 /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt
+\f1 \'b5\'da\'c8\'fd\'c1\'d0\'d7\'f6\'cb\'f7\'d2\'fd\'a3\'ac\'b5\'da
+\f0 22
+\f1 \'c1\'d0\'ca\'c7\'bb\'f9\'d2\'f2\'c3\'fb\'a1\'a3\'d3\'d0\'b5\'c4\'ca\'c7
+\f0  
+\f1 \'c1\'bd\'b8\'f6\'bb\'f9\'d2\'f2\'a3\'ac\'a3\'ac\'b1\'c8\'c8\'e7
+\f0   AL139300.1;KLC1 
+\f1 \'c4\'e3\'b1\'a3\'c1\'f4
+\f0 \'93
+\f1 \'a3\'bb
+\f0 \'94 
+\f1 \'ba\'f3\'b5\'c4\'be\'cd\'bf\'c9\'d2\'d4\'c1\'cb\'a3\'ac\'c8\'bb\'ba\'f3\'d3\'eb
+\f0  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt
+\f1 \'b5\'c4\'b5\'da\'b6\'fe\'c1\'d0\'d7\'f6\'cb\'f7\'d2\'fd\'a3\'ac\'ca\'e4\'b3\'f6
+\f0  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt 
+\f1 \'c6\'a5\'c5\'e4\'b5\'bd\'b5\'c4\'d0\'d0
+\f0 \
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/\
+\
+\
+awk '\
+NR==FNR \{\
+    # ---------- 
+\f1 \'b6\'c1
+\f0  coloc 
+\f1 \'ce\'c4\'bc\'fe
+\f0  ----------\
+    # 
+\f1 \'b9\'b9\'d4\'ec
+\f0  SNP key
+\f1 \'a3\'ba
+\f0 MarkerName_Allele1_Allele2\
+    snp_key = $2 "_" $3 "_" $4\
+\
+    # 
+\f1 \'b5\'da
+\f0 22
+\f1 \'c1\'d0\'c8\'a1\'b7\'d6\'ba\'c5\'ba\'f3\'b5\'c4
+\f0  gene\
+    gene_col = $22\
+    if (index(gene_col, ";") > 0) \{\
+        split(gene_col, a, ";")\
+        gene = a[2]\
+    \} else \{\
+        gene = gene_col\
+    \}\
+\
+    # 
+\f1 \'cb\'ab\'cb\'f7\'d2\'fd\'a3\'ba
+\f0 SNP + gene\
+    coloc[snp_key "\\t" gene] = 1\
+    next\
+\}\
+\
+\{\
+    # ---------- 
+\f1 \'b6\'c1
+\f0  eQTL 
+\f1 \'ce\'c4\'bc\'fe
+\f0  ----------\
+    eqtl_gene = $2\
+    eqtl_snp  = $3\
+\
+    if ((eqtl_snp "\\t" eqtl_gene) in coloc) \{\
+        print\
+    \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/
+\f1 \'cd\'b3\'bc\'c6\'d0\'c5\'cf\'a2
+\f0 /coloc_sig_reclassified_matched.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.txt\
+\
+awk '$NF < 0.05' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.p005.txt\
+\
+\
+\
+\
+\
+\
+}

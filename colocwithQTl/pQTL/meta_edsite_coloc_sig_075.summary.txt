@@ -1,0 +1,1 @@
+edsite	chr	pos	nsnps	PP.H0	PP.H1	PP.H2	PP.H3	PP.H4	PP.H4.abf

@@ -1,0 +1,1271 @@
+{\rtf1\ansi\ansicpg936\cocoartf2820
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww18560\viewh16100\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf0 ###########################\
+# ----------------------------------------------------------------------\
+# 1. \uc0\u21152 \u36733 \u24211 \u21644 \u35774 \u32622 \u29615 \u22659 \
+\
+\uc0\u32874 \u22992 \u24635 \u30340 \u21482 \u26377 \u26174 \u33879 \u32467 \u26524 \u65292 \u25152 \u20197 \u25105 \u38656 \u35201 \u33258 \u24049 \u21512 \u25104 \u19968 \u25163 \
+/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results/eqtl.nominal.chrall.sig\
+significantQTL(\uc0\u20854 \u23454 \u29992 \u19981 \u19978 ):\
+/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results/eqtl.nominal.chrall.sig\
+\
+\
+ENSG00000227232 1 14405 29570 - 637 -766768 1_796338_T_C 1 796338 796338 0.00298959 0.016601 0.277603 0.0930714 0\
+ENSG00000227232 1 14405 29570 - 637 -767082 1_796652_A_C 1 796652 796652 0.00298959 0.016601 0.277603 0.0930714 0\
+#hg38\uc0\u30340 \
+\
+\
+cat > merge_eqtl_nominal.sh << 'EOF'\
+#!/usr/bin/env bash\
+\
+IN_DIR="/gpfs/hpc/home/chenchao/hanc/project/03Cross_devlopment_eQTL/cross_develop/04postnatal_546samples/results"\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL"\
+OUT_FILE="$\{OUT_DIR\}/eqtl.nominal.chrall.txt"\
+\
+mkdir -p "$OUT_DIR"\
+\
+for i in $(seq 1 22); do\
+    FILE="$\{IN_DIR\}/eqtl.nominal.chr$\{i\}"\
+    if [ -f "$FILE" ]; then\
+        if [ "$i" -eq 1 ]; then\
+            cat "$FILE" > "$OUT_FILE"\
+        else\
+            tail -n +2 "$FILE" >> "$OUT_FILE"\
+        fi\
+        echo "Finished processing Chr$\{i\}"\
+    else\
+        echo "Warning: $FILE not found!"\
+    fi\
+done\
+EOF\
+\
+#\uc0\u20808 \u20889 \u33050 \u26412 \u65292 \u28982 \u21518 \u36816 \u34892 \
+cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL\
+bash merge_eqtl_nominal.sh\
+\
+#\uc0\u21482 \u20445 \u30041 \u38656 \u35201 \u34892 \
+awk 'BEGIN\{OFS="\\t"\}\
+NR==1\{\
+  print "eGene","eSNP","snp_chr","snp_pos","beta","pvalue"\
+  next\
+\}\
+\{\
+  print $1,$8,$9,$10,$14,$12\
+\}' eqtl.nominal.chrall.txt \\\
+> eqtl.nominal.for_coloc.txt\
+\
+\
+\
+########################\
+#\uc0\u20889 \u30456 \u20284 \u33050 \u26412 \u25972 \u21512 edqtl \u25991 \u20214    hg38\u30340 \
+cat > merge_edqtl_nominal_chrall.sh << 'EOF'\
+#!/usr/bin/env bash\
+\
+IN_DIR="/gpfs/hpc/home/chenchao/guomh/all_result/edQTLmapping/Asian/edQTL"\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL"\
+OUT_FILE="$\{OUT_DIR\}/edqtl.nominal.chrall.txt"\
+\
+mkdir -p "$OUT_DIR"\
+\
+FIRST=1\
+\
+for i in $(seq 1 22); do\
+    FILE="$\{IN_DIR\}/eqtl.nominal.chr$\{i\}"\
+\
+    if [ -f "$FILE" ]; then\
+        if [ "$FIRST" -eq 1 ]; then\
+            # \uc0\u31532 \u19968 \u26465 \u26579 \u33394 \u20307 \u65306 \u20889 \u34920 \u22836  + \u20869 \u23481 \
+            awk 'BEGIN\{\
+                    OFS="\\t";\
+                    print "edsite","snp","snp_chr","snp_pos","beta","p"\
+                 \}\
+                 NR>1\{\
+                    print $1,$8,$9,$10,$14,$12\
+                 \}' "$FILE" > "$OUT_FILE"\
+            FIRST=0\
+        else\
+            # \uc0\u21518 \u32493 \u26579 \u33394 \u20307 \u65306 \u21482 \u36861 \u21152 \u20869 \u23481 \u65292 \u19981 \u35201 \u34920 \u22836 \
+            awk 'NR>1\{\
+                    print $1"\\t"$8"\\t"$9"\\t"$10"\\t"$14"\\t"$12\
+                 \}' "$FILE" >> "$OUT_FILE"\
+        fi\
+\
+        echo "Finished processing Chr$\{i\}"\
+    else\
+        echo "Warning: $FILE not found!"\
+    fi\
+done\
+EOF\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL\
+bash merge_edqtl_nominal_chrall.sh\
+\
+\
+#########\
+#\uc0\u33410 \u36873 edqtl \u26174 \u33879 \u25991 \u20214 \u29305 \u23450 \u21015 \
+cd  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/\
+awk 'BEGIN\{OFS="\\t"\}\
+NR==1\{\
+  print "eGene","eSNP","snp_chr","snp_pos","beta","pvalue","q"\
+  next\
+\}\
+\{\
+  print $1,$8,$9,$10,$14,$12,$16\
+\}' edqtl.nominal.signicifant \\\
+>edqtl.nominal.signicifant_coloc.txt\
+\
+\
+#########\
+cp /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.chrall.txt \\\
+   /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withpqtl/\
+\
+cp /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.signicifant_coloc.txt /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/withpqtl/\
+\
+\
+eqtlall\uc0\u65288 hg38\u65289 : \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.withMAF.filtered.txt\
+\
+eGene   eSNP    snp_chr snp_pos beta    pvalue  maf\
+ENSG00000227232 1_727242_G_A    1       727242  0.244572        0.0114231       0.104\
+ENSG00000227232 1_730869_C_T    1       730869  0.100576        0.43647 0.1102\
+edqtlall\uc0\u65288 hg38\u65289 :\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.chrall.txt\
+\
+\
+\
+chr1_1316158    1_1216593_G_C   1       1216593 -0.0158764      0.821516\
+chr1_1316158    1_1216700_G_C   1       1216700 -0.0656934      0.624822\
+\
+edqtlsig\uc0\u65288 hg38\u65289 :\
+ /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.signicifant_coloc.txt\
+\
+eGene   eSNP    snp_chr snp_pos beta    pvalue  q\
+chr10_593056    10_548597_G_A   10      548597  0.367123        1.84864e-05     0.000439615795745295\
+chr10_593063    10_529102_T_C   10      529102  -0.255971       0.0039519       0.0457284097678785\
+\
+\
+###\uc0\u28155 \u21152  maf\u65288 hg19\u65289 \u30340 \u65292 \u27880 \u24847 \u29256 \u26412   https://www.ncbi.nlm.nih.gov/snp/?term=rs372401745 \u36825 \u20010 \u32593 \u22336 \u21487 \u20197 \u26597 \
+/gpfs/hpc/home/chenchao/hanc/database/1000G_Phase3_EAS_plinkfiles/1000GEAS.frq\
+rsid    poid    rsid    maf\
+rs575272151     1_11008_C_G     rs575272151     0.03638\
+rs544419019     1_11012_C_G     rs544419019     0.03638\
+\
+#1000 EAS hg38\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/1000GEAS.hg38.frq \
+rsid    poid    rsID    maf\
+rs575272151     1_11008_C_G     rs575272151     0.03638\
+rs544419019     1_11012_C_G     rs544419019     0.03638\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+cat > liftover_1000GEAS_maf_hg19_to_hg38.sh << 'EOF'\
+#!/usr/bin/env bash\
+\
+IN_FRQ="/gpfs/hpc/home/chenchao/hanc/database/1000G_Phase3_EAS_plinkfiles/1000GEAS.frq"\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL"\
+CHAIN="/gpfs/hpc/home/chenchao/mayinuo/hg38/GRCh37_to_GRCh38.chain"\
+\
+mkdir -p "$OUT_DIR"\
+\
+# 1. \uc0\u20174  frq \u26500 \u24314  hg19 bed\
+awk 'NR>1\{\
+    split($2,a,"_");           # a[1]=chr, a[2]=pos\
+    chr=a[1]; pos=a[2];\
+    if(chr !~ /^chr/) chr="chr"chr;\
+    print chr, pos-1, pos, $2\
+\}' OFS="\\t" "$IN_FRQ" > "$OUT_DIR/1000GEAS.hg19.bed"\
+\
+# 2. liftOver \uc0\u21040  hg38\
+liftOver \\\
+  "$OUT_DIR/1000GEAS.hg19.bed" \\\
+  "$CHAIN" \\\
+  "$OUT_DIR/1000GEAS.hg38.bed" \\\
+  "$OUT_DIR/1000GEAS.hg38.failed"\
+\
+# 3. \uc0\u29983 \u25104  hg19_id -> hg38_id \u26144 \u23556 \
+awk -v OFS="\\t" '\{\
+    old=$4;\
+    split(old,a,"_");          # chr pos ref alt\
+    new_pos=$3;\
+    new_id=a[1]"_"new_pos"_"a[3]"_"a[4];\
+    print old, new_id\
+\}' "$OUT_DIR/1000GEAS.hg38.bed" > "$OUT_DIR/map_1000GEAS_hg19_to_hg38.txt"\
+\
+# 4. \uc0\u22238 \u20889  frq\u65292 \u26367 \u25442 \u20026  hg38 \u22352 \u26631 \
+awk -F'\\t' -v OFS='\\t' '\
+    FNR==NR \{ map[$1]=$2; next \}\
+    NR==1 \{ print; next \}\
+    \{\
+        old_id=$2;\
+        if(!(old_id in map)) next;\
+        $2=map[old_id];\
+        print\
+    \}\
+' "$OUT_DIR/map_1000GEAS_hg19_to_hg38.txt" \\\
+  "$IN_FRQ" > "$OUT_DIR/1000GEAS.hg38.frq"\
+EOF\
+\
+bash liftover_1000GEAS_maf_hg19_to_hg38.sh\
+sed -i '1i\\rsid\\tpoid\\trsID\\tmaf' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/1000GEAS.hg38.frq\
+\
+\
+#\uc0\u32034 \u24341 \u28155 \u21152 \u21040   eqtl \u25991 \u20214 \u37324 \
+awk -F'\\t' -v OFS='\\t' '\
+    FNR==NR \{\
+        if(NR>1) maf[$2]=$4;   # frq: key=poid(chr_pos_ref_alt), value=maf\
+        next\
+    \}\
+    NR==1 \{\
+        print $0,"maf";        # \uc0\u32473  eqtl \u34920 \u21152 \u34920 \u22836 \
+        next\
+    \}\
+    \{\
+        m = ($2 in maf) ? maf[$2] : "NA";\
+        print $0, m\
+    \}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/1000GEAS.hg38.frq \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.withMAF.txt\
+\
+awk -F'\\t' -v OFS='\\t' '\
+    NR==1 \{\
+        print > "eqtl.nominal.for_coloc.withMAF.filtered.txt"\
+        next\
+    \}\
+    \{\
+        total++\
+        if($NF=="NA")\{\
+            na++\
+        \} else \{\
+            print > "eqtl.nominal.for_coloc.withMAF.filtered.txt"\
+        \}\
+    \}\
+    END \{\
+        printf("Total SNPs: %d\\n", total) > "/dev/stderr"\
+        printf("MAF NA SNPs: %d\\n", na) > "/dev/stderr"\
+        printf("Failure ratio: %.4f\\n", na/total) > "/dev/stderr"\
+    \}\
+' /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.withMAF.txt\
+\
+sed -i '1s/\\tNA$/\\tmaf/' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.withMAF.filtered.txt\
+\
+\
+\
+\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+# ----------------------------------------------------------------------\
+library(snpStats)\
+library(BiocManager)\
+library(coloc)\
+library(reshape2)\
+library(parallel) # \uc0\u29992 \u20110 \u21518 \u32493 \u24182 \u34892 \u35745 \u31639 \
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/")\
+\
+gwas<- read.table(\
+    file = "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/eqtl.nominal.for_coloc.withMAF.filtered.txt",\
+    header = TRUE,\
+    as.is = TRUE\
+)\
+\
+# ----------------------------------------------------------------------\
+# 2. \uc0\u21152 \u36733 \u25968 \u25454 \u25991 \u20214 \
+eqtl_sig <- read.table(\
+    file = "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.signicifant_coloc.txt",\
+    header = TRUE,\
+    as.is = TRUE\
+)\
+\
+stopifnot(all(c("eGene","eSNP","snp_chr","snp_pos","pvalue") %in% colnames(gwas)))\
+\
+# Freq  \uc0\u21040   maf\
+gwas$maf <- ifelse(gwas$maf > 0.5, 1 - gwas$maf , gwas$maf )\
+gwas_save <- gwas\
+\
+\
+# ----------------------------------------------------------------------\
+\
+## A. eQTL \uc0\u24490 \u29615 \u20381 \u25454 \u25991 \u20214  (FDR \u36807 \u28388 \u21518 \u30340 \u26174 \u33879  edSite \u21015 \u34920 )\
+# \uc0\u29992 \u20110 \u30830 \u23450 \u35201 \u20998 \u26512 \u30340  edSite \u21015 \u34920 \
+eqtl_sig <- read.table(\
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.signicifant_coloc.txt", \
+    as.is=T\uc0\u65292   header = TRUE\
+)\
+\
+\
+head(eqtl_sig )\
+#eqtl_sig$eGene <- eqtl_sig$V1 # edsite ID\
+\
+# B. eQTL \uc0\u20840 \u37327 \u25968 \u25454 \u25991 \u20214  (\u26410 \u36807 \u28388 \u30340  SNP \u27719 \u24635 \u32479 \u35745 )\
+# \uc0\u29992 \u20110 \u25552 \u21462 \u21306 \u22495 \u20869 \u30340 \u25152 \u26377  SNP \u25968 \u25454  (pvalues, eSNP, N)\
+eqtl_full <- read.table(\
+  file = "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/edqtl.nominal.chrall.txt",\
+  header = TRUE,\
+  as.is = TRUE\
+)\
+\
+ head(eqtl_full )\
+# \uc0\u20551 \u35774 \u20840 \u25991 \u20214  V1=eGene, V2=eSNP, V11=p.value, V9=N   \u65292 \
+eqtl_full$eGene <- eqtl_full$edsite \
+eqtl_full$eSNP <- eqtl_full$snp\
+eqtl_full$p.value <- eqtl_full$p\
+\
+# C. GWAS \uc0\u25968 \u25454 \u25991 \u20214  (\u20445 \u25345 \u19981 \u21464 )\
+gwas = gwas_save \
+\
+# ----------------------------------------------------------------------\
+# 3. \uc0\u35299 \u26512  CHR/POS \u20449 \u24687  (\u21482 \u23545 \u20840 \u37327 \u25968 \u25454 \u21644 GWAS\u36827 \u34892 \u19968 \u27425 \u35299 \u26512 )\
+# ----------------------------------------------------------------------\
+\
+# \uc0\u20174  eQTL \u20840 \u37327 \u25968 \u25454 \u35299 \u26512  edSite \u30340  CHR/POS\u65292 \u29992 \u20110 \u31383 \u21475 \u20013 \u24515 \
+#tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))\
+#eqtl_full$site_chr <- as.integer(tmp_site[, 1])\
+#eqtl_full$site_pos <- as.integer(tmp_site[, 2])\
+\
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))\
+\
+eqtl_full$site_chr <- as.integer(sub("^chr", "", tmp_site[,1]))\
+eqtl_full$site_pos <- as.integer(tmp_site[,2])\
+\
+\
+# \uc0\u20174  eQTL \u20840 \u37327 \u25968 \u25454 \u35299 \u26512  eSNP \u30340  CHR/POS\u65292 \u29992 \u20110 \u21518 \u32493 \u21487 \u33021 \u30340 \u21306 \u22495 \u36807 \u28388 \u65288 \u21487 \u36873 \u65289 \
+#tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))\
+eqtl_full$snp_chr <- as.integer(eqtl_full$snp_chr)\
+eqtl_full$snp_pos <- as.integer(eqtl_full$snp_pos )\
+\
+\
+# ----------------------------------------------------------------------\
+# 4. \uc0\u23450 \u20041 \u20849 \u23450 \u20301 \u20989 \u25968  (\u29616 \u22312 \u20351 \u29992  eqtl_full \u36827 \u34892 \u25968 \u25454 \u25552 \u21462 )\
+# ----------------------------------------------------------------------\
+window <- 500000\
+#"1_10451955" "1_10452114" "1_10517313" "1_10518052" "1_10519002"\
+#\uc0\u27979 \u35797  site_id= "1_10519874"\
+\
+run_one_edsite <- function(site_id) \{\
+\
+    ## -------------------------\
+    ## 1. \uc0\u30830 \u23450  edSite \u20013 \u24515 \u21644 \u21306 \u22495 \
+    ## -------------------------\
+    # \uc0\u20174 \u20840 \u37327 \u25968 \u25454 \u20013 \u33719 \u21462 \u35813  edSite \u30340 \u20219 \u24847 \u19968 \u34892 \u26469 \u30830 \u23450 \u20013 \u24515 \u22352 \u26631 \
+    edsite_info <- eqtl_full[eqtl_full$eGene == site_id, ][1, ]\
+\
+    # \uc0\u26816 \u26597 \u26159 \u21542 \u33021 \u25214 \u21040 \u22352 \u26631 \
+    if (is.na(edsite_info$site_chr)) return(NULL)\
+\
+    chr_k <- edsite_info$site_chr\
+    pos_k <- edsite_info$site_pos\
+\
+    region_start <- pos_k - window\
+    region_end 	 <- pos_k + window\
+\
+    ## -------------------------\
+    ## 2. eQTL: \uc0\u20174  'eqtl_full' \u20013 \u25552 \u21462  edSite \'b1window \u20869 \u30340 \u25152 \u26377  SNP\
+    ## -------------------------\
+    # \uc0\u36807 \u28388 \u26465 \u20214 \u65306 \u21305 \u37197  edSite ID  AND \u20301 \u28857 \u22312 \u31383 \u21475 \u20869 \
+    eqtl_reg <- eqtl_full[\
+        eqtl_full$eGene == site_id &\
+        eqtl_full$snp_chr == chr_k &\
+        eqtl_full$snp_pos >= region_start &\
+        eqtl_full$snp_pos <= region_end,\
+    ]\
+    \
+\
+\
+    if (nrow(eqtl_reg) < 2) return(NULL)\
+\
+    ## -------------------------\
+    ## 3. GWAS\uc0\u65306 \u21462  edsite \'b1window\
+    ## -------------------------\
+    gwas_reg <- gwas[\
+        gwas$snp_chr == chr_k &\
+        gwas$snp_pos >= region_start &\
+        gwas$snp_pos <= region_end,\
+    ]\
+   \
+    if (nrow(gwas_reg) < 5) return(NULL)\
+\
+    ## -------------------------\
+    ## 4. SNP \uc0\u20132 \u38598 \u19982 \u23545 \u40784  (\u20851 \u38190 )\
+    ## -------------------------\
+    snps_common <- intersect(gwas_reg$eSNP, eqtl_reg$eSNP)\
+\
+    if (length(snps_common) < 2) return(NULL) # \uc0\u24517 \u39035 \u26377 \u36275 \u22815  SNP\
+\
+    ## \uc0\u20445 \u35777 \u39034 \u24207 \u23436 \u20840 \u19968 \u33268 \
+    gwas_use <- gwas_reg[match(snps_common, gwas_reg$eSNP), ]\
+    eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+\
+    ## -------------------------\
+    ## 5. coloc (\uc0\u20195 \u30721 \u20445 \u25345 \u19981 \u21464 )\
+     ##500199(170756\
+    ## -------------------------\
+    coloc_res <- coloc.abf(\
+        dataset1 = list(\
+            pvalues = gwas_use$pvalue, type = "quant", N = 546, snp = snps_common\
+        ),\
+        dataset2 = list(\
+            pvalues = eqtl_use$p, type = "quant", N = 546, snp = snps_common\
+        ),\
+        MAF = gwas_use$maf\
+    )\
+\
+    ## -------------------------\
+    ## 6. \uc0\u36820 \u22238 \u32467 \u26524 \
+    ## -------------------------\
+    data.frame(\
+        edsite = site_id, chr = chr_k, pos = pos_k,\
+        nsnps = coloc_res$summary["nsnps"],\
+        PP.H0 = coloc_res$summary["PP.H0.abf"], PP.H1 = coloc_res$summary["PP.H1.abf"], \
+        PP.H2 = coloc_res$summary["PP.H2.abf"], PP.H3 = coloc_res$summary["PP.H3.abf"], \
+        PP.H4 = coloc_res$summary["PP.H4.abf"]\
+    )\
+\}\
+\
+# ----------------------------------------------------------------------\
+# 5. \uc0\u24182 \u34892 \u25191 \u34892 \u21644 \u32467 \u26524 \u22788 \u29702  (\u19982 \u20043 \u21069 \u30456 \u21516 )\
+# ----------------------------------------------------------------------\
+unique_edsites <- unique(eqtl_sig$eGene) # \uc0\u20173 \u28982 \u20351 \u29992 \u26174 \u33879 \u21015 \u34920 \u20316 \u20026 \u24490 \u29615 \u20381 \u25454 \
+\
+ncore <- 20 # \uc0\u20551 \u35774 \u20998 \u37197 \u20102  20 \u20010 \u26680 \u24515 \
+\
+message(paste("Starting colocalization analysis on", length(unique_edsites), "edsites using", ncore, "cores..."))\
+\
+results_list <- mclapply(\
+    unique_edsites,             \
+    run_one_edsite,             \
+    mc.cores = ncore\
+)\
+\
+\
+# \uc0\u32467 \u26524 \u21512 \u24182 \u12289 \u28165 \u29702 \u21644 \u25490 \u24207 \
+results_list_cleaned <- results_list[!sapply(results_list, is.null)]\
+results_df <- do.call(rbind, results_list_cleaned)\
+\
+# \uc0\u36755 \u20986  Top 20 \u21644 \u25991 \u20214 \
+results_df$PP.H4.abf <- as.numeric(as.character(results_df$PP.H4))\
+sorted_results <- results_df[order(results_df$PP.H4.abf, decreasing = TRUE), ]\
+top_20_pph4 <- head(sorted_results, 20)\
+print("--- PP.H4.abf \uc0\u26368 \u22823 \u30340  Top 20 \u20849 \u23450 \u20301 \u20851 \u32852  (\u22522 \u20110 \u20840 \u37327 \u25968 \u25454 ) ---")\
+print(top_20_pph4)\
+\
+write.table(results_df, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_all_results_full_data.txt", sep="\\t", row.names=F, quote=F)\
+# ... (\uc0\u30465 \u30053 \u26174 \u33879 \u32467 \u26524 \u36755 \u20986 \u37096 \u20998 )\
+\
+\
+# \uc0\u20551 \u35774 \u26174 \u33879 \u24615 \u38408 \u20540 \u20173 \u20026  0.75     144     0.8   68 \
+sig_cutoff <- 0.8\
+sig_summary <- sorted_results[sorted_results$PP.H4.abf > sig_cutoff, ]\
+write.table(sig_summary, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_08.summary.txt", sep="\\t", row.names=F, quote=F)\
+\
+sig_cutoff <- 0.75\
+sig_summary <- sorted_results[sorted_results$PP.H4.abf > sig_cutoff, ]\
+write.table(sig_summary, file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt", sep="\\t", row.names=F, quote=F)\
+\
+#\uc0\u36825 \u37324 \u22240 \u20026 \u25968 \u37327 \u22826 \u22810 \u25105 \u25913 \u25104 \u20102 \u21482 \u30011 \u21069 20\
+sig_genes_list <- (top_20_pph4$edsite)\
+\
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/")\
+source("locus.R")\
+##################\uc0\u25552 \u21462 snp \u21644 \u21487 \u35270 \u21270 \
+library(qvalue)\
+library(ggplot2)\
+library(coloc)\
+library(dplyr)\
+library(gridExtra)\
+library(data.table)\
+\
+# =======================================================\
+# 2. Locus \uc0\u21487 \u35270 \u21270  (\u21442 \u25968 \u32479 \u19968 \u19982 \u25968 \u25454 \u25972 \u21512 )\
+# =======================================================\
+\
+# ... (\uc0\u22270 \u29255 \u20445 \u23384 \u30446 \u24405 \u21644  top_genes \u31579 \u36873 \u36923 \u36753 \u20445 \u25345 \u19981 \u21464 ) ...\
+plot_dir="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/"\
+\
+top_genes=sig_genes_list\
+if (length(top_genes) > 0) \{\
+    \
+    for (gene in top_genes) \{\
+        \
+        # --- \uc0\u20851 \u38190 \u25972 \u21512 \u65306 \u25968 \u25454 \u25552 \u21462 \u21644 \u23545 \u40784  (\u19982 \u19978 \u26041 \u36923 \u36753 \u19968 \u33268 ) ---\
+        # 1. \uc0\u30830 \u23450  edSite \u20013 \u24515 \u21644 \u21306 \u22495 \
+        edsite_info <- eqtl_full[eqtl_full$eGene == gene, ][1, ]\
+        if (is.na(edsite_info$site_chr)) next\
+        chr_k <- edsite_info$site_chr\
+        pos_k <- edsite_info$site_pos\
+        region_start <- pos_k - window\
+        region_end <- pos_k + window\
+\
+        # 2. \uc0\u25552 \u21462  eQTL/edQTL \u25968 \u25454 \
+        eqtl_reg <- eqtl_full[\
+            eqtl_full$eGene == gene & eqtl_full$snp_chr == chr_k & eqtl_full$snp_pos >= region_start & eqtl_full$snp_pos <= region_end,\
+        ]\
+        \
+        # 3. \uc0\u25552 \u21462  GWAS \u25968 \u25454 \
+        gwas_reg <- gwas[\
+            gwas$snp_chr == chr_k & gwas$snp_pos >= region_start & gwas$snp_pos <= region_end,\
+        ]\
+\
+        # 4. SNP \uc0\u20132 \u38598 \u19982 \u23545 \u40784 \
+        snps_common <- intersect(gwas_reg$eSNP, eqtl_reg$eSNP)\
+        if (length(snps_common) < 2) next\
+\
+        gwas_use <- gwas_reg[match(snps_common, gwas_reg$eSNP), ]\
+        eqtl_use <- eqtl_reg[match(snps_common, eqtl_reg$eSNP), ]\
+        \
+        # 5. \uc0\u37325 \u26032 \u36816 \u34892  coloc\
+        res <- coloc.abf(\
+            dataset1 = list(pvalues = gwas_use$pval, type = "quant", N = 546, snp = snps_common),\
+            dataset2 = list(pvalues = eqtl_use$p.value, type = "quant", N = 975, snp = snps_common),\
+            MAF = gwas_use$maf\
+        )\
+            \
+        snp_info <- res$results # \uc0\u21253 \u21547  snp \u21644  SNP.PP.H4 \u21015 \
+        \
+        # --- 6. \uc0\u25972 \u29702 \u32472 \u22270 \u25968 \u25454  (\u20351 \u29992 \u20132 \u38598 \u32467 \u26524 ) ---\
+        plot_df <- data.frame(\
+            eSNP = snps_common,\
+            BP = gwas_use$snp_pos, # \uc0\u20351 \u29992  GWAS \u30340 \u20301 \u32622 \u20449 \u24687 \u20316 \u20026  X \u36724 \
+            GWAS_P = gwas_use$pval,\
+            EQTL_P = eqtl_use$p.value\
+        )\
+        \
+        # \uc0\u23558  SNP.PP.H4 \u21512 \u24182 \u22238 \u32472 \u22270 \u25968 \u25454 , by.y = "snp" \u38656 \u35201 \u30830 \u23450 \
+        plot_df <- merge(plot_df, snp_info[, c("snp", "SNP.PP.H4")], by.x = "eSNP", by.y = "snp")\
+        \
+        # \uc0\u36716 \u25442 \u20026  Mb \u21333 \u20301 \
+        plot_df$BP_Mb <- plot_df$BP / 1e6\
+        plot_df$SNP.PP.H4[is.na(plot_df$SNP.PP.H4)] <- 0\
+        \
+        # --- 2.4 \uc0\u20351 \u29992  ggplot2 \u32472 \u22270  ---\
+        \
+        # \uc0\u23450 \u20041 \u23376 \u22270  1: GWAS\
+# --- 1. \uc0\u35782 \u21035 \u35813 \u21306 \u22495 \u30340  Top SNP ---\
+# \uc0\u25214 \u21040  SNP.PP.H4 \u26368 \u22823 \u30340 \u37027 \u19968 \u34892 \
+top_snp_row <- plot_df[which.max(plot_df$SNP.PP.H4), ]\
+top_snp_id <- top_snp_row$eSNP\
+\
+# \uc0\u37325 \u26032 \u23545  plot_df \u25490 \u24207 \u65292 \u30830 \u20445  PP.H4 \u22823 \u30340 \u28857 \u26368 \u21518 \u30011 \u65288 \u30011 \u22312 \u26368 \u19978 \u23618 \u65289 \
+plot_df <- plot_df %>% arrange(SNP.PP.H4)\
+\
+# --- 2. \uc0\u23450 \u20041 \u23376 \u22270  1: GWAS ---\
+p1 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(GWAS_P))) +\
+    # \uc0\u30011 \u32972 \u26223 \u28857 \
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +\
+    # \uc0\u19987 \u38376 \u32473  Top SNP \u30011 \u19968 \u20010 \u22823 \u33777 \u24418 \
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(GWAS_P)), \
+               color = "red", shape = 18, size = 6) + \
+    # \uc0\u26631 \u27880  Top SNP \u30340  ID\
+    geom_text(data = top_snp_row, aes(label = eSNP), \
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +\
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +\
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+    expand_limits(y = max(-log10(plot_df$GWAS_P)) * 1.2) + # \uc0\u30041 \u20986 \u25991 \u23383 \u31354 \u38388 \
+    labs(title = paste0(gene, " - eQTL Signal"), y = "-log10(eQTL P)", x = NULL) +\
+    theme_bw() + theme(legend.position = "right", axis.text.x = element_blank())\
+\
+# --- 3. \uc0\u23450 \u20041 \u23376 \u22270  2: edQTL ---\
+p2 <- ggplot(plot_df, aes(x = BP_Mb, y = -log10(EQTL_P))) +\
+    geom_point(aes(color = SNP.PP.H4, size = SNP.PP.H4), alpha = 0.7) +\
+    # \uc0\u21516 \u26679 \u32473  edQTL \u22270 \u20063 \u26631 \u20986  Top SNP\
+    geom_point(data = top_snp_row, aes(x = BP_Mb, y = -log10(EQTL_P)), \
+               color = "red", shape = 18, size = 6) +\
+    geom_text(data = top_snp_row, aes(label = eSNP), \
+              vjust = -1.5, color = "black", fontface = "bold", size = 3) +\
+    scale_color_gradient(low = "grey70", high = "red", limits = c(0, 1), name = "P(Causal)") +\
+    scale_size_continuous(range = c(1.5, 4), guide = "none") +\
+    expand_limits(y = max(-log10(plot_df$EQTL_P)) * 1.2) +\
+    labs(title = paste0(gene, " - edQTL Signal"), \
+         y = "-log10(edQTL P)", x = paste("Position on Chr (Mb)")) +\
+    theme_bw() + theme(legend.position = "right")\
+\
+\
+            \
+        # --- 2.5 \uc0\u25340 \u22270 \u24182 \u20445 \u23384  ---\
+       safe_gene_name <- gsub("[:/]", "_", gene)\
+        out_file <- paste0(plot_dir, safe_gene_name, "_LocusPlot.pdf")\
+        \
+        final_plot <- grid.arrange(p1, p2, ncol = 1, heights = c(1, 1))\
+        \
+        # \uc0\u20351 \u29992  ggsave \u20445 \u23384 \u25340 \u21512 \u30340 \u22270 \
+        ggsave(filename = out_file, plot = final_plot, width = 8, height = 8)\
+    \}\
+    \
+    cat("Done! All plots saved to:", plot_dir, "\\n")\
+    \
+\} else \{\
+    cat("No edSites passed the threshold (PP.H4 > 0.75).\\n")\
+\}\
+\
+\
+\
+################################\
+library(locusplotr)  \uc0\u21487 \u35270 \u21270 \
+\
+edsite:\
+13_67715485\
+top snp:13_67715455_C_T\
+###############################\
+\
+\
+library(devtools)\
+library(locusplotr)\
+library(tidyverse)\
+library(tidyr)\
+\
+gwas <- read.table(\
+    file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt", \
+    header=T\
+)\
+gwas$maf <- ifelse(gwas$maf>0.5, 1-gwas$maf, gwas$maf)\
+\
+gwas <- gwas %>%\
+  separate(eSNP, into = c(NA, NA, "ref", "alt"), sep = "_", remove = FALSE)\
+\
+head(gwas)\
+\
+# 7_137070298_G_A    0.094121971364096\
+#7_137071339_C_T     0.085705385792180\
+\
+gwas[gwas$snp_pos == 67715455 & gwas$snp_chr == 13, ]\
+\
+\
+# 1. \uc0\u23558 \u32472 \u22270 \u32467 \u26524 \u36171 \u20540 \u32473  p\
+p <- gwas %>%\
+  gg_locusplot(\
+    lead_snp = "13_67715455_C_T",\
+    rsid =eSNP,\
+    chrom = snp_chr ,\
+    pos = snp_pos,\
+    ref = ref,\
+    alt = alt,\
+    p_value = pvalue,\
+    plot_genes = TRUE,\
+  plot_recombination = TRUE\
+  )\
+\
+# 2. \uc0\u23450 \u20041 \u20445 \u23384 \u36335 \u24452 \u21644 \u25991 \u20214 \u21517 \
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/13_67715485_locusplot.pdf"\
+\
+# 3. \uc0\u20351 \u29992  ggsave \u20445 \u23384 \
+# \uc0\u20320 \u21487 \u20197 \u26681 \u25454 \u38656 \u35201 \u26356 \u25913 \u21518 \u32512 \u20026  .png, .pdf, \u25110  .tiff\
+library(ggplot2)\
+ggsave(\
+  filename = output_path, \
+  plot = p, \
+  width = 10,   # \uc0\u23485 \u24230 \u65292 \u24314 \u35758  Locus Plot \u35774 \u32622 \u23485 \u19968 \u28857 \
+  height = 7,   # \uc0\u39640 \u24230 \
+  dpi = 300     # \uc0\u20998 \u36776 \u29575 \u65288 \u22914 \u26524 \u26159  PNG \u26684 \u24335 \u30340 \u35805 \u65289 \
+)\
+\
+cat("\uc0\u22270 \u29255 \u24050 \u20445 \u23384 \u33267 :", output_path, "\\n")\
+######################\
+7_137068835_G_A\
+\
+gwas[gwas$pos == 137068835 & gwas$chr == 7, ]\
+\
+###########################\
+\uc0\u30011 \u19968 \u20010  edqtl \u30340 \
+\
+eqtl_full <- read.table(\
+   file="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/metaqtl/nominal_all/\uc0\u36870 \u26041 \u24046 \u21152 \u26435 /metal_results_hg38/hg19_all/all_merged_classified.allele_fixed_hg19.txt", \
+    as.is=T\
+)\
+# \uc0\u20551 \u35774 \u20840 \u25991 \u20214  V1=eGene, V2=eSNP, V11=p.value, V9=N\
+eqtl_full$eGene <- eqtl_full$V1\
+eqtl_full$eSNP <- eqtl_full$V2\
+eqtl_full$p.value <- eqtl_full$V11 \
+\
+\
+# ----------------------------------------------------------------------\
+# 3. \uc0\u35299 \u26512  CHR/POS \u20449 \u24687  (\u21482 \u23545 \u20840 \u37327 \u25968 \u25454 \u21644 GWAS\u36827 \u34892 \u19968 \u27425 \u35299 \u26512 )\
+# ----------------------------------------------------------------------\
+\
+# \uc0\u20174  eQTL \u20840 \u37327 \u25968 \u25454 \u35299 \u26512  edSite \u30340  CHR/POS\u65292 \u29992 \u20110 \u31383 \u21475 \u20013 \u24515 \
+tmp_site <- do.call(rbind, strsplit(eqtl_full$eGene, "_"))\
+eqtl_full$site_chr <- as.integer(tmp_site[, 1])\
+eqtl_full$site_pos <- as.integer(tmp_site[, 2])\
+\
+# \uc0\u20174  eQTL \u20840 \u37327 \u25968 \u25454 \u35299 \u26512  eSNP \u30340  CHR/POS\u65292 \u29992 \u20110 \u21518 \u32493 \u21487 \u33021 \u30340 \u21306 \u22495 \u36807 \u28388 \u65288 \u21487 \u36873 \u65289 \
+tmp_snp <- do.call(rbind, strsplit(eqtl_full$eSNP, "_"))\
+eqtl_full$snp_chr <- as.integer(tmp_snp[, 1])\
+eqtl_full$snp_pos <- as.integer(tmp_snp[, 2])\
+\
+\
+\
+p <- \
+gg_locusplot(\
+  df = eqtl_full,\
+  lead_snp = "13_67715455_C_T",\
+  rsid = eSNP,\
+  chrom = snp_chr,\
+  pos = snp_pos,\
+  ref = V3,\
+  alt = V4,\
+  p_value = p.value,\
+  plot_genes = TRUE,\
+  plot_recombination = TRUE\
+)\
+\
+output_path <- "/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/figure/edqtl_rs13234894_locusplot3.pdf"\
+\
+# 3. \uc0\u20351 \u29992  ggsave \u20445 \u23384 \
+# \uc0\u20320 \u21487 \u20197 \u26681 \u25454 \u38656 \u35201 \u26356 \u25913 \u21518 \u32512 \u20026  .png, .pdf, \u25110  .tiff\
+library(ggplot2)\
+ggsave(\
+  filename = output_path, \
+  plot = p, \
+  width = 10,   # \uc0\u23485 \u24230 \u65292 \u24314 \u35758  Locus Plot \u35774 \u32622 \u23485 \u19968 \u28857 \
+  height = 7,   # \uc0\u39640 \u24230 \
+  dpi = 300     # \uc0\u20998 \u36776 \u29575 \u65288 \u22914 \u26524 \u26159  PNG \u26684 \u24335 \u30340 \u35805 \u65289 \
+)\
+\
+\
+\
+####################################\
+\uc0\u29983 \u25104  PPT \u21487 \u20197 \u23637 \u31034 \u30340 \u34920 \u26684 \
+####################################\
+\
+\uc0\u36755 \u20837 \u25991 \u20214 coloc: \u31532 \u19968 \u21015 \u20026  edsite\
+\'a0/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt\
+\
+\uc0\u27880 \u37322 \u25991 \u20214 1\u65306 \
+DATA_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+\uc0\u31532 \u19968 \u21015 edSite_File\'a0 \u20570 \u32034 \u24341 \u65292 \u28155 \u21152  Final_Class \u21015 \u65292 \u20498 \u25968  1 2 3\u19977 \u21015 \u65288 \u22522 \u22240 \u65292  \u22522 \u22240 \u32452 \u27880 \u37322 \u65292  alu \u20803 \u20214 \u65289 \
+\
+\uc0\u27880 \u37322 \u25991 \u20214 2\u65306 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/miRNA.txt\
+\uc0\u31532 \u22235 \u21015  Gene \u20570 \u32034 \u24341 ,\u28155 \u21152 \u31532 \u19968 \u21015  Experiment \'a0\
+\uc0\u27880 \u37322 \u25991 \u20214 3\u65306 \
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/suny_1182_sigpair.txt\
+\uc0\u31532 2\u21015  Var2 \u20570 \u32034 \u24341 \u65292 \u28155 \u21152 \u31532 \u19968 \u21015  Var1\
+\
+\
+\uc0\u36755 \u20986 \u36335 \u24452 : \'a0\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/     \
+\uc0\u25105 \u38656 \u35201 \u20808 \u23558 \u25991 \u20214 \u19968 \u25991 \u20214 \u20108 \u25353  edsite \u32034 \u24341 \u65292 \u28155 \u21152 \u25351 \u23450 \u21015 \u65292 \u28982 \u21518 \u20877 \u29992 \u29983 \u25104 \u25991 \u20214 \u26032 \u28155 \u21152 \u30340 \u22522 \u22240 \u21015 \u32034 \u24341 \u25991 \u20214 \u19977 \u25991 \u20214 \u22235 \u12290 \u32034 \u24341 \u26102 \u22914 \u26524 \u27809 \u32034 \u24341 \u19978 \u21017  \u25913 \u21015 \u22635 NA ,\u22914 \u26524 \u26576 \u20010 \u32034 \u24341 \u22312 \u32034 \u24341 \u25991 \u20214 \u23384 \u22312 \u22810 \u34892 \u21017 \u21482 \u21462 \u31532 \u19968 \u20010 \u21305 \u37197 \u30340 \u32034 \u24341 \u32467 \u26524 \
+\
+\
+# 1. \uc0\u23450 \u20041 \u36335 \u24452 \
+COLOC_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result/meta_edsite_coloc_sig_075.summary.txt"\
+ANNO1="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+ANNO2="/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/miRNA.txt"\
+ANNO3="/gpfs/hpc/home/chenchao/mayinuo/edqtl/edsitegene/miRNA/suny_1182_sigpair.txt"\
+\
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/result"\
+OUT_FILE="$\{OUT_DIR\}/meta_edsite_coloc_annotated.txt"\
+\
+mkdir -p "$OUT_DIR"\
+\
+# 2. \uc0\u25191 \u34892  awk \u20851 \u32852 \u36923 \u36753 \
+awk '\
+BEGIN \{ FS="\\t"; OFS="\\t" \}\
+\
+# \uc0\u22788 \u29702 \u27880 \u37322 \u25991 \u20214  1 (ANNO1)\
+ARGIND == 1 \{\
+    if (FNR > 1 && $1 != "") \{\
+        if (!($1 in a1_f)) \{\
+            a1_f[$1] = $20\
+            a1_g[$1] = $(NF-2)\
+            a1_n[$1] = $(NF-1)\
+            a1_a[$1] = $NF\
+        \}\
+    \}\
+    next\
+\}\
+\
+# \uc0\u22788 \u29702 \u27880 \u37322 \u25991 \u20214  2 (ANNO2)\
+ARGIND == 2 \{\
+    if ($4 != "" && !($4 in a2_e)) \{\
+        a2_e[$4] = $1\
+    \}\
+    next\
+\}\
+\
+# \uc0\u22788 \u29702 \u27880 \u37322 \u25991 \u20214  3 (ANNO3)\
+ARGIND == 3 \{\
+    if (FNR > 1 && $2 != "" && !($2 in a3_v)) \{\
+        a3_v[$2] = $1\
+    \}\
+    next\
+\}\
+\
+# \uc0\u22788 \u29702 \u36755 \u20837 \u25991 \u20214  (COLOC_FILE)\
+ARGIND == 4 \{\
+    if (FNR == 1) \{\
+        print $0, "Final_Class", "gene", "site_anno", "ALU", "Experiment", "Var1"\
+    \} else \{\
+        cur_site = $1\
+        \
+        # \uc0\u21021 \u22987 \u21270 \u21464 \u37327 \u65292 \u36991 \u20813 \u20351 \u29992  exp \u31561 \u20445 \u30041 \u23383 \
+        res_f = "NA"; res_g = "NA"; res_n = "NA"; res_a = "NA"; \
+        res_e = "NA"; res_v = "NA";\
+        \
+        # \uc0\u31532 \u19968 \u23618 \u65306 \u22522 \u20110  site\
+        if (cur_site in a1_f) \{\
+            res_f = a1_f[cur_site]\
+            res_g = a1_g[cur_site]\
+            res_n = a1_n[cur_site]\
+            res_a = a1_a[cur_site]\
+        \}\
+        \
+        # \uc0\u31532 \u20108 \u12289 \u19977 \u23618 \u65306 \u22522 \u20110 \u25214 \u21040 \u30340  gene\
+        if (res_g != "NA") \{\
+            if (res_g in a2_e) \{\
+                res_e = a2_e[res_g]\
+            \}\
+            if (res_g in a3_v) \{\
+                res_v = a3_v[res_g]\
+            \}\
+        \}\
+        \
+        print $0, res_f, res_g, res_n, res_a, res_e, res_v\
+    \}\
+\}' "$ANNO1" "$ANNO2" "$ANNO3" "$COLOC_FILE" > "$OUT_FILE"\
+\
+echo "\uc0\u22788 \u29702 \u23436 \u25104 \u65281 \u32467 \u26524 \u20445 \u23384 \u33267 : $OUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/SCZ_EAS/meta_edsite_coloc_sig_075.summary.txt\
+###################\uc0\u32034 \u24341 \u25552 \u21462 \u38656 \u35201 \u30340 \u34892 \u28155 \u21152 \u38656 \u35201 \u30340 \u21015 \
+\
+# 1. \uc0\u23450 \u20041 \u36335 \u24452 \
+MDD_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/MDD_EUR/meta_edsite_coloc_sig_075.summary.txt"\
+SCZ_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/SCZ_EAS/meta_edsite_coloc_sig_075.summary.txt"\
+DATA_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/meta/class/metaqtl_significant_final_reclassified.txt"\
+OUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 /coloc_sig_reclassified_matched.txt"\
+\
+mkdir -p "$(dirname "$OUT_FILE")"\
+\
+# 2. \uc0\u25191 \u34892  awk \u20851 \u32852 \
+awk '\
+BEGIN \{ FS="\\t"; OFS="\\t" \}\
+\
+# \uc0\u22788 \u29702 \u31532 \u19968 \u20010 \u25991 \u20214 : MDD\
+ARGIND == 1 \{\
+    if (FNR > 1 && $1 != "") \{\
+        disease[$1] = "MDD"\
+        pph4[$1] = $NF  # $NF \uc0\u20195 \u34920 \u26368 \u21518 \u19968 \u21015  (PPH4)\
+    \}\
+    next\
+\}\
+\
+# \uc0\u22788 \u29702 \u31532 \u20108 \u20010 \u25991 \u20214 : SCZ\
+ARGIND == 2 \{\
+    if (FNR > 1 && $1 != "") \{\
+        # \uc0\u22914 \u26524 \u26576 \u20010  Site \u22312 \u20004 \u20010 \u30142 \u30149 \u37324 \u37117 \u26377 \u65292 \u36825 \u37324 \u20250 \u20197  SCZ \u20026 \u20934 \u25110 \u21487 \u20197 \u20462 \u25913 \u36923 \u36753 \
+        disease[$1] = "SCZ"\
+        pph4[$1] = $NF\
+    \}\
+    next\
+\}\
+\
+# \uc0\u22788 \u29702 \u31532 \u19977 \u20010 \u25991 \u20214 : \u22823 \u34920  (metaqtl_significant)\
+ARGIND == 3 \{\
+    if (FNR == 1) \{\
+        # \uc0\u22312 \u34920 \u22836 \u26411 \u23614 \u28155 \u21152 \u26032 \u21015 \u21517 \
+        print $0, "disease", "PPH4"\
+    \} else \{\
+        site = $1\
+        if (site in disease) \{\
+            # \uc0\u36755 \u20986 \u21407 \u22987 \u34892 \u65292 \u24182 \u36861 \u21152 \u35813  Site \u23545 \u24212 \u30340 \u30142 \u30149 \u21517 \u21644  PPH4\
+            print $0, disease[site], pph4[site]\
+        \}\
+    \}\
+\}' "$MDD_FILE" "$SCZ_FILE" "$DATA_FILE" > "$OUT_FILE"\
+\
+echo "\uc0\u21305 \u37197 \u19982 \u23383 \u27573 \u28155 \u21152 \u23436 \u25104 \u65281 \u32467 \u26524 \u20445 \u23384 \u33267 : $OUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+###############\uc0\u25552 \u21462 \u38656 \u35201 \u30340 \u21015 \u26368 \u32456 \u23637 \u31034 \
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 "\
+mkdir -p "$OUT_DIR"\
+\
+INPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 /coloc_sig_reclassified_matched.txt"\
+OUTPUT_FILE="$\{OUT_DIR\}/site_statistics_refined.txt"\
+\
+# 2. \uc0\u25191 \u34892 \u32479 \u35745 \u36923 \u36753 \
+awk '\
+BEGIN \{\
+    FS="\\t"; OFS="\\t";\
+\}\
+NR == 1 \{\
+    # \uc0\u25171 \u21360 \u32479 \u35745 \u25253 \u34920 \u30340 \u34920 \u22836 \
+    print "edSite_File", "Gene", "Site_Anno", "Disease", "PPH4", "Total_Significant_Markers", "Final_Class_Distribution" > "'"$OUTPUT_FILE"'"\
+    next\
+\}\
+\{\
+    # --- \uc0\u26032 \u22686 \u26465 \u20214 \u36807 \u28388  ---\
+    # \uc0\u21482 \u22788 \u29702 \u31532  17 \u21015  q_value < 0.05 \u30340 \u34892 \
+    if ($17 >= 0.05) next;\
+\
+    # --- \uc0\u21160 \u24577 \u23450 \u20301 \u21015  ---\
+    site        = $1;    # \uc0\u31532 1\u21015 \
+    marker      = $2;    # \uc0\u31532 2\u21015 \
+    final_class = $20;   # \uc0\u31532 20\u21015 \
+    \
+    pph4        = $NF;\
+    disease     = $(NF-1);\
+    site_anno   = $(NF-3);\
+    gene        = $(NF-4);\
+\
+    # --- \uc0\u32479 \u35745 \u36923 \u36753  (\u20165 \u38024 \u23545 \u28385 \u36275  q < 0.05 \u30340 \u34892 ) ---\
+    if (!(site in gene_map))    gene_map[site] = gene;\
+    if (!(site in anno_map))    anno_map[site] = site_anno;\
+    if (!(site in dis_map))     dis_map[site]  = disease;\
+    if (!(site in pph4_map))    pph4_map[site] = pph4;\
+\
+    # \uc0\u32479 \u35745 \u21807 \u19968 \u26174 \u33879  Marker \u25968 \u37327 \
+    marker_key = site SUBSEP marker;\
+    if (!(marker_key in seen_marker)) \{\
+        site_marker_count[site]++;\
+        seen_marker[marker_key] = 1;\
+    \}\
+\
+    # \uc0\u32479 \u35745 \u26174 \u33879 \u34892 \u30340  Final_Class \u20998 \u31867 \u20998 \u24067 \
+    class_count[site][final_class]++;\
+\}\
+END \{\
+    for (s in site_marker_count) \{\
+        class_str = "";\
+        for (c in class_count[s]) \{\
+            class_str = class_str c "(" class_count[s][c] "); ";\
+        \}\
+        sub(/; $/, "", class_str);\
+        \
+        print s, gene_map[s], anno_map[s], dis_map[s], pph4_map[s], site_marker_count[s], class_str >> "'"$OUTPUT_FILE"'"\
+    \}\
+\}' "$INPUT_FILE"\
+\
+echo "\uc0\u32479 \u35745 \u23436 \u25104 \u65281 \u20165 \u21253 \u21547  q_value < 0.05 \u30340 \u26174 \u33879 \u20301 \u28857 \u32479 \u35745 \u65292 \u32467 \u26524 \u20445 \u23384 \u33267 : $OUTPUT_FILE"\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+###############\uc0\u20197 \u19978 \u21482 \u23637 \u31034 \u26174 \u33879 snp  \
+###############\uc0\u20197 \u19979 \u23637 \u31034 \u30340 \u26159 \u25152 \u26377 \u30340 snp  \u27809 \u26377 \u31649 \u26159 \u21542 \u26174 \u33879 \
+chr11   61335229        61335230        chr11_61567758\
+\
+# 1. \uc0\u23450 \u20041 \u36335 \u24452 \
+OUT_DIR="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 "\
+mkdir -p "$OUT_DIR"\
+\
+INPUT_FILE="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 /coloc_sig_reclassified_matched.txt"\
+OUTPUT_FILE="$\{OUT_DIR\}/site_statistics_refined.txt"\
+\
+# 2. \uc0\u25191 \u34892 \u32479 \u35745 \u36923 \u36753 \
+awk '\
+BEGIN \{\
+    FS="\\t"; OFS="\\t";\
+\}\
+NR == 1 \{\
+    # \uc0\u25171 \u21360 \u32479 \u35745 \u25253 \u34920 \u30340 \u34920 \u22836 \
+    # \uc0\u21253 \u21547 \u20320 \u26032 \u35201 \u27714 \u30340  Disease \u21644  PPH4\
+    print "edSite_File", "Gene", "Site_Anno", "Disease", "PPH4", "Total_Markers", "Final_Class_Distribution" > "'"$OUTPUT_FILE"'"\
+    next\
+\}\
+\{\
+    # --- \uc0\u21160 \u24577 \u23450 \u20301 \u21015  (\u22522 \u20110 \u36861 \u21152 \u21518 \u30340  26 \u21015 \u32467 \u26500 ) ---\
+    # 1. \uc0\u24120 \u35268 \u21015 \
+    site        = $1;    # \uc0\u31532 1\u21015 \
+    marker      = $2;    # \uc0\u31532 2\u21015 \
+    final_class = $20;   # \uc0\u31532 20\u21015 \
+    \
+    # 2. \uc0\u23614 \u37096 \u21015  (\u21033 \u29992  NF \u33258 \u21160 \u36866 \u24212 \u26032 \u22686 \u21015 \u21518 \u30340 \u20301 \u32622 )\
+    # \uc0\u26368 \u21518 \u19968 \u21015  ($NF) \u26159  PPH4\
+    # \uc0\u20498 \u25968 \u31532 \u20108 \u21015  ($(NF-1)) \u26159  disease\
+    # \uc0\u20498 \u25968 \u31532 \u19977 \u21015  ($(NF-2)) \u26159  ALU (\u20320 \u20043 \u21069 \u23450 \u20041 \u30340 )\
+    # \uc0\u20498 \u25968 \u31532 \u22235 \u21015  ($(NF-3)) \u26159  site_anno\
+    # \uc0\u20498 \u25968 \u31532 \u20116 \u21015  ($(NF-4)) \u26159  gene\
+    \
+    pph4        = $NF;\
+    disease     = $(NF-1);\
+    site_anno   = $(NF-3);\
+    gene        = $(NF-4);\
+\
+    # --- \uc0\u32479 \u35745 \u36923 \u36753  ---\
+    # \uc0\u35760 \u24405  site \u23545 \u24212 \u30340 \u38745 \u24577 \u20449 \u24687  (Disease \u21644  PPH4 \u23545 \u27599 \u20010  site \u24212 \u35813 \u26159 \u21807 \u19968 \u30340 )\
+    if (!(site in gene_map))    gene_map[site] = gene;\
+    if (!(site in anno_map))    anno_map[site] = site_anno;\
+    if (!(site in dis_map))     dis_map[site]  = disease;\
+    if (!(site in pph4_map))    pph4_map[site] = pph4;\
+\
+    # \uc0\u32479 \u35745 \u21807 \u19968  Marker \u25968 \u37327 \
+    marker_key = site SUBSEP marker;\
+    if (!(marker_key in seen_marker)) \{\
+        site_marker_count[site]++;\
+        seen_marker[marker_key] = 1;\
+    \}\
+\
+    # \uc0\u32479 \u35745  Final_Class \u20998 \u31867 \u20998 \u24067 \
+    class_count[site][final_class]++;\
+\}\
+END \{\
+    for (s in site_marker_count) \{\
+        # \uc0\u25340 \u25509 \u20998 \u31867 \u35745 \u25968 \u23383 \u31526 \u20018 \
+        class_str = "";\
+        for (c in class_count[s]) \{\
+            class_str = class_str c "(" class_count[s][c] "); ";\
+        \}\
+        sub(/; $/, "", class_str);\
+        \
+        # \uc0\u25353 \u29031 \u26032 \u34920 \u22836 \u39034 \u24207 \u36755 \u20986 \
+        print s, gene_map[s], anno_map[s], dis_map[s], pph4_map[s], site_marker_count[s], class_str >> "'"$OUTPUT_FILE"'"\
+    \}\
+\}' "$INPUT_FILE"\
+\
+echo "\uc0\u32479 \u35745 \u23436 \u25104 \u65281 \u26368 \u32456 \u32467 \u26524 \u21253 \u21547  Disease \u21644  PPH4\u65292 \u20445 \u23384 \u33267 : $OUTPUT_FILE" +\
+\
+#########################################\
+\uc0\u30475  coloc \u30340 \u22522 \u22240 \u26159 \u19981 \u26159 egene \u65292 \u25918 \u23485  \u38480 \u21046 \u35201 \u27714 \u12290 1\u26376 9\u26085 \
+#########################################\
+\
+# \uc0\u35774 \u32622 \u24037 \u20316 \u30446 \u24405 \
+library(clusterProfiler)   \
+library(org.Hs.eg.db)\
+library(data.table)\
+\
+# \uc0\u35774 \u32622 \u24037 \u20316 \u30446 \u24405 \
+setwd("/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/")\
+\
+# 1. \uc0\u39640 \u25928 \u35835 \u21462 \u21407 \u22987 \u22823 \u25991 \u20214 \
+input_file <- "eqtl.nominal.for_coloc.hg19.txt"\
+message("\uc0\u27491 \u22312 \u35835 \u21462 \u21407 \u22987 \u25968 \u25454 ...")\
+# \uc0\u20351 \u29992  fread \u35835 \u21462 \u65292 \u36895 \u24230 \u36828 \u24555 \u20110  read.table\
+egene_data <- fread(input_file, header = FALSE) \
+\
+# \uc0\u33719 \u21462 \u21807 \u19968 \u30340  ENSG ID \u36827 \u34892 \u36716 \u25442 \u65288 \u20026 \u20102 \u33410 \u30465 \u20869 \u23384 \u21644 \u26102 \u38388 \u65292 \u21482 \u36716 \u25442  Unique \u30340  ID\u65289 \
+ensg_ids <- unique(egene_data$V1)\
+\
+# \uc0\u21435 \u38500 \u29256 \u26412 \u21495 \u65288 \u22914  ENSG000001.10 -> ENSG000001\u65289 \
+ensg_ids_clean <- gsub("\\\\..*", "", ensg_ids)\
+\
+# 2. \uc0\u36827 \u34892  ID \u36716 \u25442 \
+message("\uc0\u27491 \u22312 \u36827 \u34892  ID \u36716 \u25442 ...")\
+gene_conversion <- bitr(ensg_ids_clean, \
+                        fromType = "ENSEMBL", \
+                        toType   = "SYMBOL", \
+                        OrgDb    = org.Hs.eg.db,\
+                        drop     = FALSE)\
+\
+# \uc0\u24314 \u31435 \u19968 \u20010 \u36716 \u25442 \u23383 \u20856 \u65306 \u21407 \u22987  ID -> \u28165 \u29702 \u21518 \u30340  ID -> Symbol\
+# \uc0\u36825 \u37324 \u22788 \u29702 \u29256 \u26412 \u21495 \u30340 \u23545 \u24212 \u20851 \u31995 \u65292 \u30830 \u20445 \u33021  merge \u22238 \u21435 \
+mapping_df <- data.frame(V1 = ensg_ids, clean_id = ensg_ids_clean, stringsAsFactors = FALSE)\
+mapping_df <- merge(mapping_df, gene_conversion, by.x = "clean_id", by.y = "ENSEMBL", all.x = TRUE)\
+\
+# 3. \uc0\u24314 \u31435 \u26144 \u23556 \u20851 \u31995 \u24182 \u24378 \u21046 \u21435 \u37325 \u65288 \u35299 \u20915 \u22810 \u23545 \u19968 \u38382 \u39064 \u65289 \
+message("\uc0\u27491 \u22312 \u21512 \u24182 \u22522 \u22240 \u21517 \u33267 \u21407 \u22987 \u34920 ...")\
+\
+# \uc0\u25105 \u20204 \u21482 \u38656 \u35201  V1 (\u21407 \u22987  ID) \u21644  SYMBOL \u36825 \u20004 \u21015 \
+mapping_dict <- as.data.table(mapping_df[, c("V1", "SYMBOL")])\
+\
+# \uc0\u12304 \u26680 \u24515 \u20462 \u22797 \u27493 \u12305 \u65306 \u30830 \u20445 \u27599 \u20010  V1 \u21482 \u26377 \u19968 \u20010 \u23545 \u24212 \u30340  SYMBOL\
+# \uc0\u22914 \u26524 \u19968 \u20010  ENSG \u23545 \u24212 \u22810 \u20010  SYMBOL\u65292 \u21482 \u21462 \u31532 \u19968 \u20010 \u65292 \u36991 \u20813 \u34892 \u25968 \u33192 \u32960 \
+mapping_dict_unique <- mapping_dict[, .(SYMBOL = SYMBOL[1]), by = V1]\
+\
+# \uc0\u35774 \u32622  Key \u20197 \u21152 \u36895 \u21512 \u24182 \
+setkey(mapping_dict_unique, V1)\
+setkey(egene_data, V1)\
+\
+# \uc0\u20351 \u29992 \u24038 \u36830 \u25509 \u21512 \u24182 \
+# \uc0\u29616 \u22312 \u19981 \u20250 \u20877 \u25253 \u38169 \u65292 \u22240 \u20026  mapping_dict_unique \u23545 \u20110  egene_data \u26159 \u19968 \u23545 \u19968 \u30340 \u20851 \u31995 \
+egene_data_with_name <- mapping_dict_unique[egene_data]\
+\
+# 4. \uc0\u20445 \u23384 \u32467 \u26524 \
+output_file <- "eqtl.nominal.for_coloc_genename_hg19.txt"\
+message("\uc0\u27491 \u22312 \u20445 \u23384 \u32467 \u26524 ...")\
+# \uc0\u20351 \u29992  fwrite \u24555 \u36895 \u20445 \u23384 \u65292 \u19981 \u21152 \u24341 \u21495 \u65292 \u21046 \u34920 \u31526 \u20998 \u38548 \
+fwrite(egene_data_with_name, output_file, sep = "\\t", quote = FALSE, col.names = FALSE)\
+\
+cat("\uc0\u24685 \u21916 \u65281 \u36716 \u25442 \u24182 \u28155 \u21152 \u21015 \u24050 \u23436 \u25104 \u65281 \\n")\
+cat("\uc0\u21407 \u22987 \u34892 \u25968 :", nrow(egene_data), "\\n")\
+cat("\uc0\u20445 \u23384 \u20301 \u32622 :", getwd(), "/", output_file, "\\n")\
+\
+################\uc0\u36825 \u20010 \u26041 \u27861 \u19981 \u22826 \u22909 \u65292 \u26377 17% \u30340 \u22522 \u22240 \u27809 \u21305 \u37197 \u19978 \
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/hg38/v40/\
+\
+sed '/^#/d' gencode.v40.annotation.gtf | \\\
+awk '$3=="gene"' | \\\
+awk '\{\
+    # \uc0\u20351 \u29992 \u27491 \u21017 \u21305 \u37197 \u33719 \u21462  gene_id \u30340 \u20540 \
+    match($0, /gene_id "([^"]+)"/, id);\
+    # \uc0\u20351 \u29992 \u27491 \u21017 \u21305 \u37197 \u33719 \u21462  gene_name \u30340 \u20540 \
+    match($0, /gene_name "([^"]+)"/, name);\
+    \
+    # \uc0\u25552 \u21462  ID \u24182 \u21435 \u25481 \u29256 \u26412 \u21495 \
+    split(id[1], a, ".");\
+    \
+    # \uc0\u22914 \u26524 \u21305 \u37197 \u21040 \u20102  Name \u19988  ID \u19981 \u20026 \u31354 \u65292 \u21017 \u25171 \u21360 \
+    if (a[1] != "" && name[1] != "") \{\
+        print a[1], name[1]\
+    \}\
+\}' | sort -u > gene_name_mapping.txt\
+\
+\uc0\u32034 \u24341 \u25991 \u20214 \u65306   /gpfs/hpc/home/chenchao/mayinuo/hg38/v40/gene_name_mapping.txt\
+###\uc0\u36716 \u25442 \
+#\uc0\u20889 \u20010 \u33050 \u26412 \u65306 \
+\
+cat << 'EOF' > add_genename.sh\
+#!/bin/bash\
+\
+# \uc0\u23450 \u20041 \u36335 \u24452 \
+MAPPING="/gpfs/hpc/home/chenchao/mayinuo/hg38/v40/gene_name_mapping.txt"\
+INPUT="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl.nominal.for_coloc.hg19.txt"\
+OUTPUT="/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt"\
+\
+echo "\uc0\u24320 \u22987 \u22788 \u29702 \u65292 \u36825 \u21487 \u33021 \u38656 \u35201 \u20960 \u20998 \u38047 ..."\
+\
+awk 'NR==FNR \{\
+    a[$1] = $2; \
+    next\
+\} \
+\{\
+    full_id = $1;\
+    # \uc0\u21435 \u25481 \u29256 \u26412 \u21495 \
+    dot_index = index(full_id, ".");\
+    if (dot_index > 0) \{\
+        clean_id = substr(full_id, 1, dot_index - 1);\
+    \} else \{\
+        clean_id = full_id;\
+    \}\
+    \
+    # \uc0\u26597 \u25214  symbol\
+    symbol = (clean_id in a) ? a[clean_id] : "NA";\
+    \
+    # \uc0\u25171 \u21360 \u65306 \u21407  ID, Symbol, \u20197 \u21450 \u21518 \u32493 \u25152 \u26377 \u21015 \
+    printf "%s\\t%s", $1, symbol;\
+    for(i=2; i<=NF; i++) \{\
+        printf "\\t%s", $i;\
+    \}\
+    printf "\\n";\
+\}' "$MAPPING" "$INPUT" > "$OUTPUT"\
+\
+echo "\uc0\u22788 \u29702 \u23436 \u25104 \u65281 \u32467 \u26524 \u20445 \u23384 \u33267 : $OUTPUT"\
+EOF\
+\
+\
+chmod +x add_genename.sh\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/add_genename.sh\
+\
+\
+\
+#\uc0\u32467 \u26524 \u25991 \u20214 \u65306 /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt\
+##\uc0\u24320 \u22987 \u25214 \u26159 \u21542 \u26377  coloc\
+\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 /coloc_sig_reclassified_matched.txt\
+# \uc0\u31532 \u19968 \u21015  edsite ,\u31532 \u20108 \u21015  edsnp \u12289 \u31532 \u19977 \u21015  alle1 \u12289 \u31532 \u22235 \u21015  alle2\u20197  _\u38142 \u25509 \u21518 \u65292 \u19982 /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt\u31532 \u19977 \u21015 \u20570 \u32034 \u24341 \u65292 \u31532 22\u21015 \u26159 \u22522 \u22240 \u21517 \u12290 \u26377 \u30340 \u26159  \u20004 \u20010 \u22522 \u22240 \u65292 \u65292 \u27604 \u22914   AL139300.1;KLC1 \u20320 \u20445 \u30041 \'93\u65307 \'94 \u21518 \u30340 \u23601 \u21487 \u20197 \u20102 \u65292 \u28982 \u21518 \u19982  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt\u30340 \u31532 \u20108 \u21015 \u20570 \u32034 \u24341 \u65292 \u36755 \u20986  /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt \u21305 \u37197 \u21040 \u30340 \u34892 \
+\
+\
+cd /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/\
+\
+\
+awk '\
+NR==FNR \{\
+    # ---------- \uc0\u35835  coloc \u25991 \u20214  ----------\
+    # \uc0\u26500 \u36896  SNP key\u65306 MarkerName_Allele1_Allele2\
+    snp_key = $2 "_" $3 "_" $4\
+\
+    # \uc0\u31532 22\u21015 \u21462 \u20998 \u21495 \u21518 \u30340  gene\
+    gene_col = $22\
+    if (index(gene_col, ";") > 0) \{\
+        split(gene_col, a, ";")\
+        gene = a[2]\
+    \} else \{\
+        gene = gene_col\
+    \}\
+\
+    # \uc0\u21452 \u32034 \u24341 \u65306 SNP + gene\
+    coloc[snp_key "\\t" gene] = 1\
+    next\
+\}\
+\
+\{\
+    # ---------- \uc0\u35835  eQTL \u25991 \u20214  ----------\
+    eqtl_gene = $2\
+    eqtl_snp  = $3\
+\
+    if ((eqtl_snp "\\t" eqtl_gene) in coloc) \{\
+        print\
+    \}\
+\}\
+' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/coloc1/\uc0\u32479 \u35745 \u20449 \u24687 /coloc_sig_reclassified_matched.txt \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_with_names.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.txt\
+\
+awk '$NF < 0.05' \\\
+/gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.txt \\\
+> /gpfs/hpc/home/chenchao/mayinuo/edqtl/coloc/witheQTL/hg19/eqtl_matched_to_coloc.p005.txt\
+\
+\
+\
+\
+\
+\
+}

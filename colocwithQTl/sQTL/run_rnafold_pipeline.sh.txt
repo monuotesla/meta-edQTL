@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# ======================
+# 参数
+# ======================
+INPUT=$1              # edsite 文件（第一列：chr_pos）
+OUTDIR=$2             # 输出目录
+
+GENOME="/gpfs/hpc/home/chenchao/share_group_folder/data/genomes/refresh/hg38.fa"
+BEDTOOLS="/gpfs/hpc/home/chenchao/mayinuo/share_group_folder/tools/bedtools-master/bin/bedtools"
+
+mkdir -p $OUTDIR
+mkdir -p $OUTDIR/result/ref
+mkdir -p $OUTDIR/result/edit
+
+# ======================
+# 1️⃣ edsite → bed
+# ======================
+awk '
+BEGIN{OFS="\t"}
+{
+  split($1,a,"_")
+  chr="chr"a[1]
+  pos=a[2]
+
+  start=pos-100
+  if(start<0) start=0
+
+  end=pos+100
+
+  print chr, start, end, $1
+}
+' $INPUT > $OUTDIR/region.bed
+
+# ======================
+# 2️⃣ 提取序列
+# ======================
+$BEDTOOLS getfasta \
+-fi $GENOME \
+-bed $OUTDIR/region.bed \
+-name \
+-fo $OUTDIR/seq.fa
+
+# ======================
+# 3️⃣ 构建 edited 序列
+# ======================
+awk '
+BEGIN{OFS=""}
+/^>/{
+  header=$0
+  getline seq
+
+  base=substr(seq,101,1)
+
+  if(base=="A" || base=="a"){
+    seq = substr(seq,1,100) "G" substr(seq,102)
+  }
+  else if(base=="C" || base=="c"){
+    seq = substr(seq,1,100) "T" substr(seq,102)
+  }
+
+  print header
+  print seq
+}
+' $OUTDIR/seq.fa > $OUTDIR/seq.edited.fa
+
+# ======================
+# 4️⃣ RNAfold（ref）
+# ======================
+cd $OUTDIR/result/ref
+RNAfold --maxBPspan=100 --noLP < $OUTDIR/seq.fa > ref.structure.txt
+
+# ======================
+# 5️⃣ RNAfold（edit）
+# ======================
+cd $OUTDIR/result/edit
+RNAfold --maxBPspan=100 --noLP < $OUTDIR/seq.edited.fa > edit.structure.txt
+
+# ======================
+# 6️⃣ ps → pdf
+# ======================
+for f in $OUTDIR/result/ref/*_ss.ps; do
+  ps2pdf "$f" "${f%.ps}.pdf"
+done
+
+for f in $OUTDIR/result/edit/*_ss.ps; do
+  ps2pdf "$f" "${f%.ps}.pdf"
+done
+
+# ======================
+# 7️⃣ 结构提取函数
+# ======================
+parse_struct () {
+awk '
+NR%3==1 {
+  gsub(/^>/,"",$0)
+  id=$0
+}
+NR%3==2 {next}
+NR%3==0 {
+  split($0,a," ")
+  struct=a[1]
+  energy=a[length(a)]
+  gsub(/[()]/,"",energy)
+  print id"\t"struct"\t"energy
+}'
+}
+
+# ======================
+# 8️⃣ 提取结构
+# ======================
+parse_struct < $OUTDIR/result/ref/ref.structure.txt > $OUTDIR/ref.clean.txt
+parse_struct < $OUTDIR/result/edit/edit.structure.txt > $OUTDIR/edit.clean.txt
+
+# ======================
+# 9️⃣ merge
+# ======================
+join -1 1 -2 1 \
+<(sort $OUTDIR/ref.clean.txt) \
+<(sort $OUTDIR/edit.clean.txt) \
+> $OUTDIR/merged.txt
+
+# ======================
+# 🔟 ΔG + 中心变化
+# ======================
+awk '
+BEGIN{OFS="\t"}
+{
+  id=$1
+
+  ref_struct=$2
+  ref_energy=$3
+
+  edit_struct=$4
+  edit_energy=$5
+
+  deltaG = edit_energy - ref_energy
+
+  ref_base  = substr(ref_struct,101,1)
+  edit_base = substr(edit_struct,101,1)
+
+  change = (ref_base != edit_base) ? 1 : 0
+
+  print id, ref_energy, edit_energy, deltaG, ref_base, edit_base, change
+}
+' $OUTDIR/merged.txt > $OUTDIR/structure_change_summary.txt
+
+echo "✅ Pipeline finished!"
+echo "📁 Result: $OUTDIR/structure_change_summary.txt"
