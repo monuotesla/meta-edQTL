@@ -1,0 +1,18 @@
+https://www.encodeproject.org/experiments/ENCSR432XUP/
+ENCFF609IXO.bed.gz	SRSF1_K562_rep01   
+chrom	chromStart	chromEnd	name	score分值（0-1000）	strand正负链	signalValue_Enrichment（富集倍数	-log10(p-value	qValue	peak
+
+
+ENCFF282VMI.bed.gz     SRSF2
+
+
+
+https://www.encodeproject.org/experiments/ENCSR981WKN/
+ENCFF594PWG.bed       PTBP1
+
+https://www.encodeproject.org/experiments/ENCSR249ROI/
+ENCFF664RLU.bed.gz     hnRNPC
+
+
+STAU1 
+https://cloud.tsinghua.edu.cn/d/be6d966ba7834f44b62b/
